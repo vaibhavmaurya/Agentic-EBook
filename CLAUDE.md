@@ -4,11 +4,29 @@ This file is read automatically by Claude Code in every conversation. Keep it up
 
 ---
 
+## ▶ START HERE — Every Session
+
+**Before writing any code, read `action-item.md`.**
+
+It contains:
+- The exact step to resume from (top of the file, **RESUME HERE** section)
+- Granular task checklists for the current milestone
+- The session log showing what was done last
+
+**At the end of every session:**
+1. Check off completed items in `action-item.md`
+2. Update the **RESUME HERE** section with the next concrete step
+3. Add a row to the **Session Log** table
+4. Update the Milestone Status table in both `action-item.md` and `CLAUDE.md`
+5. Commit and push: `git add -A && git commit -m "..." && git push`
+
+---
+
 ## Project Summary
 
 A dynamic, per-topic, multi-agent publishing platform. AI agents research, draft, and stage content per topic. Human admin approves before incremental publish to a public ebook site. Runs entirely on AWS.
 
-**Full plan:** `plan.md` | **Stack and tooling decisions:** `DevelopmentPlan.md`
+**Resume tracker:** `action-item.md` | **Full plan:** `plan.md` | **Stack decisions:** `DevelopmentPlan.md`
 
 ---
 
@@ -32,6 +50,7 @@ API Gateway HTTP API → Lambda handlers (`services/api/`) → DynamoDB (metadat
 
 | File/Dir | Purpose |
 |---|---|
+| `action-item.md` | **Session resume tracker** — always read first, always update last |
 | `plan.md` | Living MVP plan — milestones, schema, API endpoints, verification checklist |
 | `DevelopmentPlan.md` | Stack decisions, MCP tools, env vars reference, milestone status |
 | `services/openai-runtime/__init__.py` | ONLY place openai SDK is imported |
@@ -176,15 +195,15 @@ Requires: `GITHUB_TOKEN` env var in shell profile (not `.env.local`).
 
 | # | Milestone | Status |
 |---|---|---|
-| 1 | Terraform Infrastructure Foundation | Not started |
-| 2 | Topic CRUD API + Admin UI | Not started |
-| 3 | Scheduling + Manual Trigger | Not started |
-| 4 | Multi-Agent Pipeline | Not started |
-| 5 | Admin Review + Approval | Not started |
-| 6 | Incremental Publishing | Not started |
-| 7 | Public Website | Not started |
-| 8 | Run History + Feedback UI | Not started |
-| 9 | Weekly Digest | Not started |
-| 10 | Jupyter Notebook Test Harness | Not started |
+| 1 | Terraform Infrastructure Foundation | 🔄 In Progress |
+| 2 | Topic CRUD API + Admin UI | ⏳ Pending |
+| 3 | Scheduling + Manual Trigger | ⏳ Pending |
+| 4 | Multi-Agent Pipeline | ⏳ Pending |
+| 5 | Admin Review + Approval | ⏳ Pending |
+| 6 | Incremental Publishing | ⏳ Pending |
+| 7 | Public Website | ⏳ Pending |
+| 8 | Run History + Feedback UI | ⏳ Pending |
+| 9 | Weekly Digest | ⏳ Pending |
+| 10 | Jupyter Notebook Test Harness | ⏳ Pending |
 
-Update this table as milestones are completed.
+**Detailed task checklists and RESUME point:** see `action-item.md`.
