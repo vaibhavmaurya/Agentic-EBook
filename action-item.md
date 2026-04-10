@@ -9,7 +9,7 @@
 
 **Session ended:** 2026-04-10
 **Last completed:** M1 COMPLETE — `terraform apply` succeeded (83 resources). All AWS resources live in dev account. Cognito admin user created (vaibhavmaurya1986@gmail.com / EbookAdmin2026!). `.env.local` populated with all outputs.
-**Next action:** Start **M2** — implement `services/api/topics.py` (Topic CRUD Lambda handler) and `packages/shared-types/models.py` (Pydantic models).
+**Next action:** Start **M2 Admin UI** — scaffold React + Vite app in `apps/admin-site/`, wire Cognito auth, build topic list page and create/edit form.
 
 ### Immediate next steps (in order):
 
@@ -200,12 +200,14 @@ ebook-digest-worker-<env>
 ### Prerequisite: Milestone 1 complete
 
 ### Backend tasks
-- [ ] `services/api/topics.py` — Lambda handler for topic CRUD
-- [ ] `services/api/local_dev_server.py` — FastAPI local server wrapping Lambda handlers
-- [ ] `packages/shared-types/models.py` — Pydantic models: `Topic`, `TopicRun`, `Draft`, `Review`, `TraceEvent`
-- [ ] `services/api/requirements.txt` — pydantic, boto3, aws-lambda-powertools
-- [ ] Unit tests: `services/api/tests/test_topics.py`
-- [ ] Trace event writer utility: `packages/shared-types/tracer.py`
+- [x] `services/api/topics.py` — Lambda handler for topic CRUD + trigger
+- [x] `services/api/local_dev_server.py` — FastAPI local server wrapping Lambda handlers
+- [x] `packages/shared-types/models.py` — Pydantic models: Topic, Run, Review, Feedback, TraceEvent
+- [x] `packages/shared-types/tracer.py` — trace event writer utility
+- [x] `packages/shared-types/__init__.py` + `setup.py`
+- [x] `services/api/requirements.txt`
+- [x] `services/api/tests/test_topics_routing.py` — routing + validation unit tests
+- [x] `services/API.md` — full API reference with curl/Python examples
 
 ### API endpoints to implement
 - [ ] `GET /admin/topics` — list all active topics sorted by order
@@ -352,3 +354,4 @@ _None currently._
 | 2026-04-10 | M1-S1 + M1-S2: dev env main.tf (13 module calls, locals for circular-dep-free ARN construction), variables.tf, outputs.tf, terraform.tfvars.example. Skeleton main.tf/variables.tf/outputs.tf for all 13 modules with full interface contracts. |
 | 2026-04-10 | M1-S3→S14: All 13 Terraform modules fully implemented (dynamodb, s3_artifacts, iam, secrets_manager, cognito, lambda_functions, api_gateway, step_functions, eventbridge_scheduler, ses, monitoring, amplify_public_site, amplify_admin_site). `terraform init` + `terraform validate` pass cleanly. |
 | 2026-04-10 | M1-S15+S16: terraform.tfvars filled (account 135671745449). `terraform plan` = 83 resources, 0 errors. `terraform apply` succeeded — all 83 AWS resources live. Cognito admin user created (vaibhavmaurya1986@gmail.com). .env.local populated. infra/AWS.md created. **Milestone 1 complete.** |
+| 2026-04-10 | M2 backend: services/API.md (full API reference), packages/shared-types (models.py, tracer.py, __init__.py, setup.py), services/api/topics.py (CRUD + trigger handler), local_dev_server.py, public.py stub, requirements.txt, unit tests. Admin UI next. |
