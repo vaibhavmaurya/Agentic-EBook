@@ -1,0 +1,140 @@
+# =============================================================================
+# Agentic Ebook Platform — LLM Model Configuration
+# =============================================================================
+#
+# CHANGING PROVIDERS
+# ------------------
+# Set `active_provider` to one of: openai | anthropic | gemini
+# All agents will automatically use that provider's models.
+# Ensure the corresponding secret is stored in AWS Secrets Manager.
+#
+# CHANGING MODELS
+# ---------------
+# Edit the `high_capability` or `low_capability` model IDs under a provider.
+# Use pinned versions (e.g. gpt-4o-2024-11-20) to avoid unexpected changes.
+#
+# AGENT-LEVEL OVERRIDES
+# ----------------------
+# Each agent specifies a `capability` tier (high | low).
+# To override a specific agent to use a different model regardless of tier,
+# add `model_override: <exact-model-id>` under that agent.
+#
+# COST REFERENCE (OpenAI, as of 2026)
+# ------------------------------------
+#   gpt-4o-mini-2024-07-18:  $0.15 / 1M input   |  $0.60 / 1M output
+#   gpt-4o-2024-11-20:       $2.50 / 1M input   | $10.00 / 1M output
+#
+# With the default routing (only Writer uses high_capability),
+# a typical chapter run costs approximately $0.05–0.15 in model usage.
+# =============================================================================
+
+version: "1"
+
+# ── Active provider ───────────────────────────────────────────────────────────
+# Change this single line to switch all agents to a different LLM vendor.
+active_provider: openai
+
+# ── Provider definitions ──────────────────────────────────────────────────────
+providers:
+  openai:
+    api_key_secret: ebook-platform/openai-key   # AWS Secrets Manager secret name
+    models:
+      # Use pinned version IDs to guarantee reproducibility across runs.
+      high_capability: gpt-4o-2024-11-20          # Writer — quality-critical
+      low_capability:  gpt-4o-mini-2024-07-18     # All other agents — cost-effective
+    pricing_per_million_tokens:
+      high_capability:
+        input:  2.50
+        output: 10.00
+      low_capability:
+        input:  0.15
+        output: 0.60
+
+  anthropic:
+    api_key_secret: ebook-platform/anthropic-key
+    models:
+      high_capability: claude-opus-4-6
+      low_capability:  claude-haiku-4-5-20251001
+    pricing_per_million_tokens:
+      high_capability:
+        input:  15.00
+        output: 75.00
+      low_capability:
+        input:   0.25
+        output:  1.25
+
+  gemini:
+    api_key_secret: ebook-platform/gemini-key
+    models:
+      high_capability: gemini-2.0-pro
+      low_capability:  gemini-2.0-flash
+    pricing_per_million_tokens:
+      high_capability:
+        input:  7.00
+        output: 21.00
+      low_capability:
+        input:  0.075
+        output: 0.30
+
+# ── Agent model routing ───────────────────────────────────────────────────────
+# capability: high | low  →  resolves to the provider's high/low_capability model
+# max_tokens: max output tokens to generate
+# temperature: 0.0 (deterministic) → 1.0 (creative)
+# timeout_sec: hard timeout for the LLM API call
+agents:
+  planner:
+    capability: low          # Generates a structured research plan (JSON). Not creative.
+    max_tokens: 2048
+    temperature: 0.3
+    timeout_sec: 60
+
+  research:
+    capability: low          # Query generation + evidence synthesis.
+                             # High token volume; quality comes from tools, not model size.
+    max_tokens: 4096
+    temperature: 0.2
+    timeout_sec: 120
+    max_search_queries: 6    # Max web searches to run per topic
+    max_sources: 10          # Max URLs to fetch and include as evidence
+    max_source_chars: 4000   # Truncate each fetched source to this many characters
+
+  verifier:
+    capability: low          # Binary quality gate + structured scoring. Deterministic.
+    max_tokens: 1024
+    temperature: 0.1
+    timeout_sec: 60
+
+  writer:
+    capability: high         # PRIMARY quality gate. Generates the chapter draft.
+                             # This is the only high-capability call in the pipeline.
+    max_tokens: 8192
+    temperature: 0.6
+    timeout_sec: 180
+
+  editor:
+    capability: low          # Checklist-based review + targeted rewrites.
+                             # Uses instructions from the topic config as the rubric.
+    max_tokens: 8192
+    temperature: 0.3
+    timeout_sec: 120
+
+  diff:
+    capability: low          # Structured comparison of prior vs. new draft.
+    max_tokens: 1024
+    temperature: 0.1
+    timeout_sec: 60
+
+# ── Research tool configuration ───────────────────────────────────────────────
+# The research agent uses these tools to fetch real-world evidence.
+research_tools:
+  web_search:
+    # Provider priority: bing → serpapi → duckduckgo (fallback, no API key needed)
+    # Set the corresponding key in AWS Secrets Manager to enable premium backends.
+    bing_secret_name: ""       # ebook-platform/bing-search-key  (leave empty to skip)
+    serpapi_secret_name: ""    # ebook-platform/serpapi-key       (leave empty to skip)
+    results_per_query: 5
+
+  fetch_url:
+    timeout_sec: 15
+    max_content_bytes: 512000  # ~500 KB per page
+    user_agent: "EbookBot/1.0 (+https://github.com/vaibhavmaurya/Agentic-EBook)"

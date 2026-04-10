@@ -199,7 +199,7 @@ Requires: `GITHUB_TOKEN` env var in shell profile (not `.env.local`).
 | 1 | Terraform Infrastructure Foundation | ✅ Complete |
 | 2 | Topic CRUD API + Admin UI | ✅ Complete |
 | 3 | Scheduling + Manual Trigger | ✅ Complete |
-| 4 | Multi-Agent Pipeline | ⏳ Pending |
+| 4 | Multi-Agent Pipeline | ✅ Complete |
 | 5 | Admin Review + Approval | ⏳ Pending |
 | 6 | Incremental Publishing | ⏳ Pending |
 | 7 | Public Website | ⏳ Pending |

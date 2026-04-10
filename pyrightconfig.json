@@ -1,0 +1,13 @@
+{
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Windows",
+  "venvPath": ".",
+  "venv": ".venv",
+  "extraPaths": [
+    ".",
+    "packages",
+    "services"
+  ],
+  "include": ["services", "packages"],
+  "exclude": ["**/__pycache__", ".build", ".venv"]
+}

@@ -10,9 +10,7 @@ OpenAPI docs available at: http://localhost:8000/docs
 """
 from __future__ import annotations
 
-import json
 import os
-from typing import Any
 
 from dotenv import load_dotenv
 
@@ -24,6 +22,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from topics import lambda_handler as topics_handler
+from reviews import lambda_handler as reviews_handler
 from public import lambda_handler as public_handler  # implemented in M7
 
 app = FastAPI(
@@ -127,6 +126,30 @@ async def trigger_run(topic_id: str, request: Request):
     body = await request.body()
     event = _build_lambda_event(request, body, {"topicId": topic_id})
     return _lambda_response(topics_handler(event, None))
+
+
+# ── Admin review routes (M5) ──────────────────────────────────────────────────
+
+
+@app.get("/admin/reviews")
+async def list_reviews(request: Request):
+    body = await request.body()
+    event = _build_lambda_event(request, body, {})
+    return _lambda_response(reviews_handler(event, None))
+
+
+@app.get("/admin/topics/{topic_id}/review/{run_id}")
+async def get_review(topic_id: str, run_id: str, request: Request):
+    body = await request.body()
+    event = _build_lambda_event(request, body, {"topicId": topic_id, "runId": run_id})
+    return _lambda_response(reviews_handler(event, None))
+
+
+@app.post("/admin/topics/{topic_id}/review/{run_id}")
+async def submit_review(topic_id: str, run_id: str, request: Request):
+    body = await request.body()
+    event = _build_lambda_event(request, body, {"topicId": topic_id, "runId": run_id})
+    return _lambda_response(reviews_handler(event, None))
 
 
 # ── Public routes (M7) ────────────────────────────────────────────────────────

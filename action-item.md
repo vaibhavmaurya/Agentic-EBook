@@ -8,10 +8,22 @@
 ## ▶ RESUME HERE
 
 **Session ended:** 2026-04-10
-**Last completed:** M3 COMPLETE — Worker infrastructure created. `topic_loader.py` deployed to Lambda (`ebook-platform-dev-topic-loader`). End-to-end trigger tested: POST /trigger → SFN starts → LoadTopicConfig runs → STAGE_STARTED + STAGE_COMPLETED trace events confirmed in DynamoDB → pipeline progresses through stubs → reaches WaitForApproval. CLAUDE.md updated with local testing rule (Rule 6).
-**Next action:** Start **M4** — implement the real multi-agent pipeline workers. Begin with `services/openai-runtime/` adapter, then wire up planner_worker → research_worker → verifier_worker → draft_worker → editorial_worker. Deploy each and verify end-to-end before moving to the next.
+**Last completed:** Prompt config system added (`prompts.yaml` + `get_prompt()` in config.py) — all 6 agents now load prompts from YAML using `${variable}` templates with no code changes required. M5 backend started: `services/api/reviews.py` implemented (GET review, POST approve/reject with SFN SendTaskSuccess/Failure, GET /admin/reviews list). Review routes wired into `local_dev_server.py`. Route logic verified without AWS credentials.
+**Next action:** Continue **M5** — Admin UI review pages. Build the review queue page and draft review page in `apps/admin-site/`.
 
-### Immediate next steps (in order):
+### Immediate next steps — M5 Admin Review + Approval (backend done):
+
+1. [x] **M5-S1:** `services/api/reviews.py` — GET review, POST approve/reject, GET /admin/reviews list
+2. [x] **M5-S2:** SFN SendTaskSuccess/Failure called from POST handler; task token read from DDB REVIEW record
+3. [ ] **M5-S3:** `approval_worker.py` — also write a `DRAFT#<run_id>` DDB record with content URIs for the admin run history view
+4. [ ] **M5-S4:** Admin UI — review queue page (`/admin/reviews`) — list PENDING_REVIEW items with topic title, timeout countdown, link to review page
+5. [ ] **M5-S5:** Admin UI — draft review page (`/admin/topics/{id}/review/{runId}`) — content viewer, diff/release notes panel, scorecard, approve/reject form with notes
+6. [ ] **M5-S6:** Deploy `reviews.py` Lambda + updated `approval_worker` to AWS; test end-to-end approve flow
+7. [ ] **M5-S7:** Test rejection path and timeout (wait state expiry) handling
+
+---
+
+### Historical steps:
 
 1. [x] **M1-S1:** Create `infra/terraform/envs/dev/main.tf` — provider config, backend, module calls (scaffold, modules can be empty initially)
 2. [x] **M1-S2:** Create `infra/terraform/envs/dev/variables.tf` + `terraform.tfvars.example` + `outputs.tf` — all 13 module interfaces defined. Skeleton `main.tf`, `variables.tf`, `outputs.tf` written for every module so `terraform init/plan` can run.
@@ -39,7 +51,7 @@
 | 1 | Terraform Infrastructure Foundation | ✅ Complete | 2026-04-10 |
 | 2 | Topic CRUD API + Admin UI | ✅ Complete | 2026-04-10 |
 | 3 | Scheduling + Manual Trigger | ✅ Complete | 2026-04-10 |
-| 4 | Multi-Agent Pipeline | ⏳ Pending | — |
+| 4 | Multi-Agent Pipeline | ✅ Complete | 2026-04-10 |
 | 5 | Admin Review + Approval | ⏳ Pending | — |
 | 6 | Incremental Publishing | ⏳ Pending | — |
 | 7 | Public Website | ⏳ Pending | — |

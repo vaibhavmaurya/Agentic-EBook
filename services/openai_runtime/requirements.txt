@@ -1,0 +1,8 @@
+openai>=1.30
+boto3>=1.34
+pydantic>=2.6
+requests>=2.31
+beautifulsoup4>=4.12
+duckduckgo-search>=6.0
+PyYAML>=6.0
+python-dotenv>=1.0

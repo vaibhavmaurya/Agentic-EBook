@@ -1,19 +1,8 @@
 """
 AssembleTopicContext — Step Functions worker (stage 2 of 14).
 
-Responsibility:
-  - Read topic config from DynamoDB (topic_id comes from execution input)
-  - Read the prior published version (if any) for diff context
-  - Assemble the full topic context object
-  - Write context.json to S3 under topics/<id>/runs/<run_id>/context/
-  - Return the S3 URI so downstream workers can load it
-
-Returns (becomes $.context_result.body in SFN state):
-    {
-        "topic_id": str,
-        "run_id": str,
-        "context_uri": "s3://...",
-    }
+Reads topic config from DynamoDB, assembles the full context object,
+and writes it to S3. Subsequent workers load context from S3 by URI.
 """
 from __future__ import annotations
 
@@ -37,9 +26,7 @@ from services.workers.base import (
     extract_execution_input,
     get_topic_meta,
     put_s3_json,
-    set_run_status,
 )
-from shared_types.models import RunStatus
 from shared_types.tracer import stage_completed, stage_failed, stage_started
 
 _STAGE = "AssembleTopicContext"
@@ -80,12 +67,11 @@ def handler(event: dict, context: Any) -> dict:
 
 
 def _cli():
-    parser = argparse.ArgumentParser(description="Run AssembleTopicContext worker locally")
+    parser = argparse.ArgumentParser()
     parser.add_argument("--topic-id", required=True)
     parser.add_argument("--run-id", required=True)
     args = parser.parse_args()
-    result = assemble_topic_context(args.topic_id, args.run_id)
-    print(json.dumps(result, indent=2))
+    print(json.dumps(assemble_topic_context(args.topic_id, args.run_id), indent=2))
 
 
 if __name__ == "__main__":
