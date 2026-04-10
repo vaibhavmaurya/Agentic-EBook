@@ -1,0 +1,44 @@
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      }
+    },
+    "aws-docs": {
+      "command": "uvx",
+      "args": ["awslabs.aws-documentation-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      }
+    },
+    "terraform": {
+      "command": "uvx",
+      "args": ["awslabs.terraform-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      }
+    }
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -Command \"$f = $env:CLAUDE_TOOL_INPUT_file_path; if ($f -match '\\.tf$') { terraform fmt $f 2>$null }\"",
+            "timeout": 10000
+          },
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -Command \"$f = $env:CLAUDE_TOOL_INPUT_file_path; if ($f -match '\\.py$') { ruff check $f --fix --silent 2>$null }\"",
+            "timeout": 10000
+          }
+        ]
+      }
+    ]
+  }
+}

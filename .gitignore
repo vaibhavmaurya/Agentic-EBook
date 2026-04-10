@@ -1,0 +1,103 @@
+# =============================================================================
+# Credentials and secrets — NEVER commit these
+# =============================================================================
+.env.local
+.env
+*.pem
+*.key
+secrets/
+
+# =============================================================================
+# Python
+# =============================================================================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+.installed.cfg
+lib/
+lib64/
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+
+# =============================================================================
+# Node / TypeScript / Frontend
+# =============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm
+.yarn/
+dist/
+.next/
+out/
+.astro/
+*.tsbuildinfo
+
+# =============================================================================
+# Terraform
+# =============================================================================
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+*.tfplan
+terraform.tfvars
+terraform.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+crash.log
+crash.*.log
+
+# =============================================================================
+# Jupyter Notebooks — outputs (keep structure, ignore outputs)
+# =============================================================================
+.ipynb_checkpoints/
+
+# =============================================================================
+# OS / Editor artifacts
+# =============================================================================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.direnv/
+
+# =============================================================================
+# AWS SAM / CDK (not used but guard against accidental generation)
+# =============================================================================
+.aws-sam/
+cdk.out/
