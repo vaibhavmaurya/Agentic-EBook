@@ -8,8 +8,8 @@
 ## ▶ RESUME HERE
 
 **Session ended:** 2026-04-10
-**Last completed:** M1 COMPLETE — `terraform apply` succeeded (83 resources). All AWS resources live in dev account. Cognito admin user created (vaibhavmaurya1986@gmail.com / EbookAdmin2026!). `.env.local` populated with all outputs.
-**Next action:** Start **M3** — implement scheduling (EventBridge upsert already done in topics.py) and `POST /admin/topics/{topicId}/trigger` end-to-end with the real Step Functions dispatcher Lambda (`topic_loader.py`).
+**Last completed:** M3 COMPLETE — Worker infrastructure created. `topic_loader.py` deployed to Lambda (`ebook-platform-dev-topic-loader`). End-to-end trigger tested: POST /trigger → SFN starts → LoadTopicConfig runs → STAGE_STARTED + STAGE_COMPLETED trace events confirmed in DynamoDB → pipeline progresses through stubs → reaches WaitForApproval. CLAUDE.md updated with local testing rule (Rule 6).
+**Next action:** Start **M4** — implement the real multi-agent pipeline workers. Begin with `services/openai-runtime/` adapter, then wire up planner_worker → research_worker → verifier_worker → draft_worker → editorial_worker. Deploy each and verify end-to-end before moving to the next.
 
 ### Immediate next steps (in order):
 
@@ -38,7 +38,7 @@
 |---|---|---|---|
 | 1 | Terraform Infrastructure Foundation | ✅ Complete | 2026-04-10 |
 | 2 | Topic CRUD API + Admin UI | ✅ Complete | 2026-04-10 |
-| 3 | Scheduling + Manual Trigger | ⏳ Pending | — |
+| 3 | Scheduling + Manual Trigger | ✅ Complete | 2026-04-10 |
 | 4 | Multi-Agent Pipeline | ⏳ Pending | — |
 | 5 | Admin Review + Approval | ⏳ Pending | — |
 | 6 | Incremental Publishing | ⏳ Pending | — |
@@ -228,13 +228,16 @@ ebook-digest-worker-<env>
 
 ---
 
-## Milestone 3 — Scheduling and Manual Trigger
+## Milestone 3 — Scheduling and Manual Trigger ✅
 
 ### Backend tasks
-- [ ] `POST /admin/topics/{topicId}/trigger` handler
-- [ ] `services/workers/topic_loader.py` — LoadTopicConfig worker skeleton
-- [ ] EventBridge Scheduler API calls in topic create/update handler
-- [ ] Dispatcher Lambda for scheduled triggers
+- [x] `POST /admin/topics/{topicId}/trigger` handler
+- [x] `services/workers/topic_loader.py` — LoadTopicConfig worker (deployed to Lambda, end-to-end verified)
+- [x] `services/workers/base.py` — shared worker utilities (DynamoDB, S3, SFN context helpers)
+- [x] EventBridge Scheduler API calls in topic create/update handler
+- [x] All 13 remaining workers as stubs (planner, research, verifier, artifact_persister, draft, editorial, draft_builder, diff, approval, publish, search_index, digest)
+- [x] `scripts/deploy_workers.sh` — packaging + Lambda deploy script (builds Linux-compatible zip with pydantic manylinux wheel)
+- [x] Verified: trigger → SFN → LoadTopicConfig → STAGE_STARTED/COMPLETED trace events in DDB → pipeline reaches WaitForApproval
 
 ---
 
@@ -358,3 +361,4 @@ _None currently._
 | 2026-04-10 | M1-S15+S16: terraform.tfvars filled (account 135671745449). `terraform plan` = 83 resources, 0 errors. `terraform apply` succeeded — all 83 AWS resources live. Cognito admin user created (vaibhavmaurya1986@gmail.com). .env.local populated. infra/AWS.md created. **Milestone 1 complete.** |
 | 2026-04-10 | M2 backend: services/API.md (full API reference), packages/shared-types (models.py, tracer.py, __init__.py, setup.py), services/api/topics.py (CRUD + trigger handler), local_dev_server.py, public.py stub, requirements.txt, unit tests. |
 | 2026-04-10 | M2 Admin UI: apps/admin-site scaffolded (React 19 + Vite 8 + TS 6). LoginPage, TopicListPage (dnd-kit reorder), TopicFormPage. Amplify auth, Zustand, TanStack Query, Axios JWT interceptor. Build passes. apps/UI.md written. **Milestone 2 complete.** |
+| 2026-04-10 | M3: CLAUDE.md Rule 6 (local test before commit). services/workers/base.py + topic_loader.py (real) + topic_context_builder.py + 11 worker stubs. scripts/deploy_workers.sh (Linux manylinux zip). topic_loader deployed to ebook-platform-dev-topic-loader. End-to-end: trigger → SFN → LoadTopicConfig TaskSucceeded → trace events in DDB → WaitForApproval reached. **Milestone 3 complete.** |

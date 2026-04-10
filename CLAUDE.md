@@ -37,6 +37,7 @@ A dynamic, per-topic, multi-agent publishing platform. AI agents research, draft
 3. **No AWS credentials in source code.** All config via environment variables (`.env.local` locally, Lambda environment + Secrets Manager in AWS). `.env.local` is gitignored.
 4. **Terraform provisions platform primitives only.** Per-topic EventBridge Scheduler entries are created dynamically at runtime by the API — not by Terraform.
 5. **Update `plan.md` whenever scope or sequencing changes.** Update the milestone status table in `DevelopmentPlan.md` when a milestone completes.
+6. **After implementing any backend module or UI component, test it locally before committing.** For backend: start the API server and make real HTTP calls against dev AWS resources. For UI: run `npm run build` (0 errors required) and smoke-test the critical paths in the browser. Do not declare a milestone complete until the end-to-end flow has been exercised locally.
 
 ---
 
@@ -197,7 +198,7 @@ Requires: `GITHUB_TOKEN` env var in shell profile (not `.env.local`).
 |---|---|---|
 | 1 | Terraform Infrastructure Foundation | ✅ Complete |
 | 2 | Topic CRUD API + Admin UI | ✅ Complete |
-| 3 | Scheduling + Manual Trigger | ⏳ Pending |
+| 3 | Scheduling + Manual Trigger | ✅ Complete |
 | 4 | Multi-Agent Pipeline | ⏳ Pending |
 | 5 | Admin Review + Approval | ⏳ Pending |
 | 6 | Incremental Publishing | ⏳ Pending |
