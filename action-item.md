@@ -8,26 +8,26 @@
 ## ▶ RESUME HERE
 
 **Session ended:** 2026-04-10
-**Last completed:** M1-S1 + M1-S2 — dev env `main.tf`, `variables.tf`, `outputs.tf`, `terraform.tfvars.example` written. Skeleton `main.tf`/`variables.tf`/`outputs.tf` written for all 13 modules. Module interfaces fully defined (all inputs/outputs contracted).
-**Next action:** Install Terraform (`choco install terraform -y`), then start **M1-S3** — implement `infra/terraform/modules/dynamodb/main.tf`.
+**Last completed:** M1-S3 through M1-S14 — all 13 Terraform modules fully implemented. `terraform init` and `terraform validate` pass with zero errors. Ready for `terraform apply`.
+**Next action:** Start **M1-S15/S16** — fill in `terraform.tfvars` with real AWS account values, run `terraform plan` (verify resource count), then `terraform apply` against the dev AWS account.
 
 ### Immediate next steps (in order):
 
 1. [x] **M1-S1:** Create `infra/terraform/envs/dev/main.tf` — provider config, backend, module calls (scaffold, modules can be empty initially)
 2. [x] **M1-S2:** Create `infra/terraform/envs/dev/variables.tf` + `terraform.tfvars.example` + `outputs.tf` — all 13 module interfaces defined. Skeleton `main.tf`, `variables.tf`, `outputs.tf` written for every module so `terraform init/plan` can run.
-3. [ ] **M1-S3:** Build `infra/terraform/modules/dynamodb/` — single table, 5 GSIs, PITR, TTL
-4. [ ] **M1-S4:** Build `infra/terraform/modules/s3_artifacts/` — artifact bucket + lifecycle rules
-5. [ ] **M1-S5:** Build `infra/terraform/modules/iam/` — per-Lambda roles, Lambda execution trust policy, SFN execution role, EventBridge Scheduler role
-6. [ ] **M1-S6:** Build `infra/terraform/modules/secrets_manager/` — OpenAI key placeholder secret
-7. [ ] **M1-S7:** Build `infra/terraform/modules/cognito/` — user pool, app client, admin group
-8. [ ] **M1-S8:** Build `infra/terraform/modules/lambda_functions/` — deployment packaging, skeleton handler zip, log groups
-9. [ ] **M1-S9:** Build `infra/terraform/modules/api_gateway/` — HTTP API, JWT authorizer, CORS, routes
-10. [ ] **M1-S10:** Build `infra/terraform/modules/step_functions/` — state machine with skeleton ASL, IAM role, CW logging
-11. [ ] **M1-S11:** Build `infra/terraform/modules/eventbridge_scheduler/` — schedule group, IAM role for SFN invocation
-12. [ ] **M1-S12:** Build `infra/terraform/modules/ses/` — sender identity, IAM policy for Lambda
-13. [ ] **M1-S13:** Build `infra/terraform/modules/monitoring/` — CW alarms (Lambda error, SFN failure), dashboard skeleton
-14. [ ] **M1-S14:** Build `infra/terraform/modules/amplify_public_site/` + `amplify_admin_site/`
-15. [ ] **M1-S15:** Wire all modules into `infra/terraform/envs/dev/main.tf`, run `terraform init` + `terraform plan` — verify zero errors
+3. [x] **M1-S3:** Build `infra/terraform/modules/dynamodb/` — single table, 5 GSIs, PITR, TTL
+4. [x] **M1-S4:** Build `infra/terraform/modules/s3_artifacts/` — artifact bucket + lifecycle rules
+5. [x] **M1-S5:** Build `infra/terraform/modules/iam/` — per-Lambda roles, SFN execution role, EventBridge Scheduler role
+6. [x] **M1-S6:** Build `infra/terraform/modules/secrets_manager/` — OpenAI key placeholder secret
+7. [x] **M1-S7:** Build `infra/terraform/modules/cognito/` — user pool, app client, admin group
+8. [x] **M1-S8:** Build `infra/terraform/modules/lambda_functions/` — skeleton handler zip, 14 functions, log groups
+9. [x] **M1-S9:** Build `infra/terraform/modules/api_gateway/` — HTTP API, JWT authorizer, CORS, routes
+10. [x] **M1-S10:** Build `infra/terraform/modules/step_functions/` — full skeleton ASL, callback token pattern, CW logging
+11. [x] **M1-S11:** Build `infra/terraform/modules/eventbridge_scheduler/` — schedule group
+12. [x] **M1-S12:** Build `infra/terraform/modules/ses/` — sender identity (SESv2)
+13. [x] **M1-S13:** Build `infra/terraform/modules/monitoring/` — CW alarms, SNS, dashboard
+14. [x] **M1-S14:** Build `infra/terraform/modules/amplify_public_site/` + `amplify_admin_site/`
+15. [ ] **M1-S15:** Fill in `terraform.tfvars` with real AWS values, run `terraform plan` — verify zero errors
 16. [ ] **M1-S16:** Run `terraform apply` against dev AWS account — verify all resources exist
 
 ---
@@ -349,4 +349,5 @@ _None currently._
 | Date | What was done |
 |---|---|
 | 2026-04-10 | Project initialization: plan.md, DevelopmentPlan.md, CLAUDE.md, action-item.md, MCP config, .gitignore, .env.local.example, notebook skeleton, full project scaffolding (35 files). Pushed to GitHub. |
-| 2026-04-10 | M1-S1 + M1-S2: dev env main.tf (13 module calls, locals for circular-dep-free ARN construction), variables.tf, outputs.tf, terraform.tfvars.example. Skeleton main.tf/variables.tf/outputs.tf for all 13 modules with full interface contracts. Terraform not yet installed — next: `choco install terraform -y` then M1-S3 (dynamodb module). |
+| 2026-04-10 | M1-S1 + M1-S2: dev env main.tf (13 module calls, locals for circular-dep-free ARN construction), variables.tf, outputs.tf, terraform.tfvars.example. Skeleton main.tf/variables.tf/outputs.tf for all 13 modules with full interface contracts. |
+| 2026-04-10 | M1-S3→S14: All 13 Terraform modules fully implemented (dynamodb, s3_artifacts, iam, secrets_manager, cognito, lambda_functions, api_gateway, step_functions, eventbridge_scheduler, ses, monitoring, amplify_public_site, amplify_admin_site). `terraform init` + `terraform validate` pass cleanly. Next: fill terraform.tfvars and run apply. |

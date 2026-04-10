@@ -1,3 +1,2 @@
-# Populated in M1-S10.
-output "state_machine_arn"  { value = "" }
-output "state_machine_name" { value = "" }
+output "state_machine_arn"  { value = aws_sfn_state_machine.pipeline.arn }
+output "state_machine_name" { value = aws_sfn_state_machine.pipeline.name }

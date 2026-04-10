@@ -1,3 +1,2 @@
-# Populated in M1-S6.
-output "secret_arn"  { value = "" }
-output "secret_name" { value = "" }
+output "secret_arn"  { value = aws_secretsmanager_secret.openai_key.arn }
+output "secret_name" { value = aws_secretsmanager_secret.openai_key.name }
