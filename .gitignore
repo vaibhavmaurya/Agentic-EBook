@@ -72,6 +72,7 @@ out/
 *.tfplan
 terraform.tfvars
 terraform.tfvars.json
+!terraform.tfvars.example
 override.tf
 override.tf.json
 *_override.tf

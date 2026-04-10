@@ -1,0 +1,30 @@
+# Normalize line endings to LF in the repo; checkout as-is on all platforms.
+* text=auto eol=lf
+
+# Terraform files
+*.tf    text eol=lf
+*.tfvars text eol=lf
+
+# Python
+*.py    text eol=lf
+
+# TypeScript / JavaScript
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.js    text eol=lf
+*.json  text eol=lf
+
+# Markdown / docs
+*.md    text eol=lf
+
+# Shell
+*.sh    text eol=lf
+
+# Jupyter notebooks (treat as text so diffs work)
+*.ipynb text eol=lf
+
+# Binaries — no line-ending conversion
+*.png   binary
+*.jpg   binary
+*.zip   binary
+*.gz    binary

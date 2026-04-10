@@ -8,13 +8,13 @@
 ## ▶ RESUME HERE
 
 **Session ended:** 2026-04-10
-**Last completed:** Project initialization — all planning docs, scaffolding, CLAUDE.md, MCP config pushed to GitHub.
-**Next action:** Start **Milestone 1, Step 1** — Terraform `dev` environment root + provider config, then the `dynamodb` module.
+**Last completed:** M1-S1 + M1-S2 — dev env `main.tf`, `variables.tf`, `outputs.tf`, `terraform.tfvars.example` written. Skeleton `main.tf`/`variables.tf`/`outputs.tf` written for all 13 modules. Module interfaces fully defined (all inputs/outputs contracted).
+**Next action:** Install Terraform (`choco install terraform -y`), then start **M1-S3** — implement `infra/terraform/modules/dynamodb/main.tf`.
 
 ### Immediate next steps (in order):
 
-1. [ ] **M1-S1:** Create `infra/terraform/envs/dev/main.tf` — provider config, backend, module calls (scaffold, modules can be empty initially)
-2. [ ] **M1-S2:** Create `infra/terraform/envs/dev/variables.tf` + `terraform.tfvars.example`
+1. [x] **M1-S1:** Create `infra/terraform/envs/dev/main.tf` — provider config, backend, module calls (scaffold, modules can be empty initially)
+2. [x] **M1-S2:** Create `infra/terraform/envs/dev/variables.tf` + `terraform.tfvars.example` + `outputs.tf` — all 13 module interfaces defined. Skeleton `main.tf`, `variables.tf`, `outputs.tf` written for every module so `terraform init/plan` can run.
 3. [ ] **M1-S3:** Build `infra/terraform/modules/dynamodb/` — single table, 5 GSIs, PITR, TTL
 4. [ ] **M1-S4:** Build `infra/terraform/modules/s3_artifacts/` — artifact bucket + lifecycle rules
 5. [ ] **M1-S5:** Build `infra/terraform/modules/iam/` — per-Lambda roles, Lambda execution trust policy, SFN execution role, EventBridge Scheduler role
@@ -349,3 +349,4 @@ _None currently._
 | Date | What was done |
 |---|---|
 | 2026-04-10 | Project initialization: plan.md, DevelopmentPlan.md, CLAUDE.md, action-item.md, MCP config, .gitignore, .env.local.example, notebook skeleton, full project scaffolding (35 files). Pushed to GitHub. |
+| 2026-04-10 | M1-S1 + M1-S2: dev env main.tf (13 module calls, locals for circular-dep-free ARN construction), variables.tf, outputs.tf, terraform.tfvars.example. Skeleton main.tf/variables.tf/outputs.tf for all 13 modules with full interface contracts. Terraform not yet installed — next: `choco install terraform -y` then M1-S3 (dynamodb module). |
