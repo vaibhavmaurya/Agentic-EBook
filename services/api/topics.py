@@ -20,10 +20,6 @@ import boto3
 from boto3.dynamodb.conditions import Attr, Key
 from pydantic import ValidationError
 
-# shared-types is installed as a local package; see requirements.txt
-import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../packages"))
-
 from shared_types.models import (
     RunStatus,
     ScheduleType,

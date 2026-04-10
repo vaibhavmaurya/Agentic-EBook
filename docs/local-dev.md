@@ -52,31 +52,53 @@ After `apply` completes, Terraform outputs the resource names. Copy these into y
 
 ## Step 3 — Install Python Dependencies
 
+A single virtual environment at the **repo root** covers all services.
+
 ```bash
-cd services/api
+# From the repo root
 python -m venv .venv
-source .venv/bin/activate    # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+
+# Activate (run this every terminal session before using Python tools)
+# Windows PowerShell:
+.venv\Scripts\Activate.ps1
+# Windows CMD:
+.venv\Scripts\activate.bat
+# macOS / Linux:
+source .venv/bin/activate
+
+# Install API + worker dependencies
+pip install -r services/api/requirements.txt
+
+# Install shared-types as an editable local package
+pip install -e packages/shared-types
 ```
 
-Repeat for `services/workers/` and `services/openai-runtime/`.
-
-Or use a root `pyproject.toml` with a single venv covering all services (recommended as the project matures).
+> **Windows tip:** If you see `'uvicorn' is not recognized`, the venv is not activated or you need to use `python -m uvicorn` instead of `uvicorn` directly. Both work identically.
 
 ## Step 4 — Start the Local API Server
 
+The server reads `.env.local` automatically via `python-dotenv` — no need to source it manually.
+
 ```bash
+# Option A: with venv activated (recommended)
 cd services/api
-source .env.local      # loads AWS credentials into the shell
 uvicorn local_dev_server:app --reload --port 8000
+
+# Option B: without activating venv (always works on Windows)
+cd services/api
+../../.venv/Scripts/python -m uvicorn local_dev_server:app --reload --port 8000
 ```
 
 The local server maps all HTTP routes to the same Lambda handler functions that run in AWS. No stubs — it hits real DynamoDB, S3, and Step Functions in your dev account.
 
 Test that it's working:
 ```bash
-curl http://localhost:8000/admin/topics
-# Expects: 200 with empty list []
+curl http://localhost:8000/health
+# Expects: {"status": "ok", "env": "dev"}
+
+curl http://localhost:8000/admin/topics \
+  -H "Authorization: Bearer <cognito_token>"
+# Expects: {"topics": []}
 ```
 
 ## Step 5 — (Optional) Run Step Functions Locally
@@ -101,9 +123,13 @@ The local Step Functions emulator still calls the real Lambda functions (or you 
 ## Step 6 — Run the Jupyter Notebook Test Harness
 
 ```bash
-cd notebooks
-pip install -r requirements.txt
-jupyter notebook ebook_platform_test_harness.ipynb
+# With venv activated:
+pip install -r notebooks/requirements.txt
+jupyter notebook notebooks/ebook_platform_test_harness.ipynb
+
+# Or with explicit venv path:
+.venv/Scripts/pip install -r notebooks/requirements.txt
+.venv/Scripts/jupyter notebook notebooks/ebook_platform_test_harness.ipynb
 ```
 
 Run cells top-to-bottom for a full UC-01 → UC-15 end-to-end test.
@@ -116,7 +142,8 @@ Run Cell Group 16 (PURGE) after any exploratory testing session to clean up dev 
 cd apps/admin-site
 npm install
 npm run dev
-# Serves at http://localhost:5173
+# Serves at http://localhost:3000
+# (proxies /admin/* and /public/* to localhost:8000 automatically)
 ```
 
 ### Public Site
