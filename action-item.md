@@ -8,8 +8,8 @@
 ## ▶ RESUME HERE
 
 **Session ended:** 2026-04-10
-**Last completed:** M1-S3 through M1-S14 — all 13 Terraform modules fully implemented. `terraform init` and `terraform validate` pass with zero errors. Ready for `terraform apply`.
-**Next action:** Start **M1-S15/S16** — fill in `terraform.tfvars` with real AWS account values, run `terraform plan` (verify resource count), then `terraform apply` against the dev AWS account.
+**Last completed:** M1 COMPLETE — `terraform apply` succeeded (83 resources). All AWS resources live in dev account. Cognito admin user created (vaibhavmaurya1986@gmail.com / EbookAdmin2026!). `.env.local` populated with all outputs.
+**Next action:** Start **M2** — implement `services/api/topics.py` (Topic CRUD Lambda handler) and `packages/shared-types/models.py` (Pydantic models).
 
 ### Immediate next steps (in order):
 
@@ -27,8 +27,8 @@
 12. [x] **M1-S12:** Build `infra/terraform/modules/ses/` — sender identity (SESv2)
 13. [x] **M1-S13:** Build `infra/terraform/modules/monitoring/` — CW alarms, SNS, dashboard
 14. [x] **M1-S14:** Build `infra/terraform/modules/amplify_public_site/` + `amplify_admin_site/`
-15. [ ] **M1-S15:** Fill in `terraform.tfvars` with real AWS values, run `terraform plan` — verify zero errors
-16. [ ] **M1-S16:** Run `terraform apply` against dev AWS account — verify all resources exist
+15. [x] **M1-S15:** Fill in `terraform.tfvars` with real AWS values, run `terraform plan` — 83 resources, zero errors
+16. [x] **M1-S16:** `terraform apply` — 83 resources created. Cognito admin user created + added to admins group.
 
 ---
 
@@ -36,7 +36,7 @@
 
 | # | Milestone | Status | Completed |
 |---|---|---|---|
-| 1 | Terraform Infrastructure Foundation | 🔄 In Progress | — |
+| 1 | Terraform Infrastructure Foundation | ✅ Complete | 2026-04-10 |
 | 2 | Topic CRUD API + Admin UI | ⏳ Pending | — |
 | 3 | Scheduling + Manual Trigger | ⏳ Pending | — |
 | 4 | Multi-Agent Pipeline | ⏳ Pending | — |
@@ -350,4 +350,5 @@ _None currently._
 |---|---|
 | 2026-04-10 | Project initialization: plan.md, DevelopmentPlan.md, CLAUDE.md, action-item.md, MCP config, .gitignore, .env.local.example, notebook skeleton, full project scaffolding (35 files). Pushed to GitHub. |
 | 2026-04-10 | M1-S1 + M1-S2: dev env main.tf (13 module calls, locals for circular-dep-free ARN construction), variables.tf, outputs.tf, terraform.tfvars.example. Skeleton main.tf/variables.tf/outputs.tf for all 13 modules with full interface contracts. |
-| 2026-04-10 | M1-S3→S14: All 13 Terraform modules fully implemented (dynamodb, s3_artifacts, iam, secrets_manager, cognito, lambda_functions, api_gateway, step_functions, eventbridge_scheduler, ses, monitoring, amplify_public_site, amplify_admin_site). `terraform init` + `terraform validate` pass cleanly. Next: fill terraform.tfvars and run apply. |
+| 2026-04-10 | M1-S3→S14: All 13 Terraform modules fully implemented (dynamodb, s3_artifacts, iam, secrets_manager, cognito, lambda_functions, api_gateway, step_functions, eventbridge_scheduler, ses, monitoring, amplify_public_site, amplify_admin_site). `terraform init` + `terraform validate` pass cleanly. |
+| 2026-04-10 | M1-S15+S16: terraform.tfvars filled (account 135671745449). `terraform plan` = 83 resources, 0 errors. `terraform apply` succeeded — all 83 AWS resources live. Cognito admin user created (vaibhavmaurya1986@gmail.com). .env.local populated. infra/AWS.md created. **Milestone 1 complete.** |
