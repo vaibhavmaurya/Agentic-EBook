@@ -9,7 +9,7 @@
 
 **Session ended:** 2026-04-10
 **Last completed:** M1 COMPLETE — `terraform apply` succeeded (83 resources). All AWS resources live in dev account. Cognito admin user created (vaibhavmaurya1986@gmail.com / EbookAdmin2026!). `.env.local` populated with all outputs.
-**Next action:** Start **M2 Admin UI** — scaffold React + Vite app in `apps/admin-site/`, wire Cognito auth, build topic list page and create/edit form.
+**Next action:** Start **M3** — implement scheduling (EventBridge upsert already done in topics.py) and `POST /admin/topics/{topicId}/trigger` end-to-end with the real Step Functions dispatcher Lambda (`topic_loader.py`).
 
 ### Immediate next steps (in order):
 
@@ -37,7 +37,7 @@
 | # | Milestone | Status | Completed |
 |---|---|---|---|
 | 1 | Terraform Infrastructure Foundation | ✅ Complete | 2026-04-10 |
-| 2 | Topic CRUD API + Admin UI | ⏳ Pending | — |
+| 2 | Topic CRUD API + Admin UI | ✅ Complete | 2026-04-10 |
 | 3 | Scheduling + Manual Trigger | ⏳ Pending | — |
 | 4 | Multi-Agent Pipeline | ⏳ Pending | — |
 | 5 | Admin Review + Approval | ⏳ Pending | — |
@@ -218,11 +218,13 @@ ebook-digest-worker-<env>
 - [ ] `PUT /admin/topics/reorder` — update `order` field on affected topics
 
 ### Admin UI tasks
-- [ ] Scaffold React + Vite app in `apps/admin-site/`
-- [ ] Cognito auth integration (Amazon Cognito Identity SDK)
-- [ ] Topic list page with status badges and order display
-- [ ] Topic create/edit form
-- [ ] Topic reorder (drag-and-drop)
+- [x] Scaffold React + Vite SPA in `apps/admin-site/` (Vite 8, React 19, TS 6)
+- [x] Cognito auth integration via `aws-amplify/auth` + Zustand persist
+- [x] Axios client with JWT interceptor + 401 auto-refresh
+- [x] Topic list page with status badges, schedule tag, drag-to-reorder (dnd-kit)
+- [x] Topic create/edit form (all fields + schedule config)
+- [x] `apps/UI.md` — design decisions, local run guide, test checklist, page map
+- [x] `npm run build` passes — 0 TypeScript errors, 482 kB bundle
 
 ---
 
@@ -354,4 +356,5 @@ _None currently._
 | 2026-04-10 | M1-S1 + M1-S2: dev env main.tf (13 module calls, locals for circular-dep-free ARN construction), variables.tf, outputs.tf, terraform.tfvars.example. Skeleton main.tf/variables.tf/outputs.tf for all 13 modules with full interface contracts. |
 | 2026-04-10 | M1-S3→S14: All 13 Terraform modules fully implemented (dynamodb, s3_artifacts, iam, secrets_manager, cognito, lambda_functions, api_gateway, step_functions, eventbridge_scheduler, ses, monitoring, amplify_public_site, amplify_admin_site). `terraform init` + `terraform validate` pass cleanly. |
 | 2026-04-10 | M1-S15+S16: terraform.tfvars filled (account 135671745449). `terraform plan` = 83 resources, 0 errors. `terraform apply` succeeded — all 83 AWS resources live. Cognito admin user created (vaibhavmaurya1986@gmail.com). .env.local populated. infra/AWS.md created. **Milestone 1 complete.** |
-| 2026-04-10 | M2 backend: services/API.md (full API reference), packages/shared-types (models.py, tracer.py, __init__.py, setup.py), services/api/topics.py (CRUD + trigger handler), local_dev_server.py, public.py stub, requirements.txt, unit tests. Admin UI next. |
+| 2026-04-10 | M2 backend: services/API.md (full API reference), packages/shared-types (models.py, tracer.py, __init__.py, setup.py), services/api/topics.py (CRUD + trigger handler), local_dev_server.py, public.py stub, requirements.txt, unit tests. |
+| 2026-04-10 | M2 Admin UI: apps/admin-site scaffolded (React 19 + Vite 8 + TS 6). LoginPage, TopicListPage (dnd-kit reorder), TopicFormPage. Amplify auth, Zustand, TanStack Query, Axios JWT interceptor. Build passes. apps/UI.md written. **Milestone 2 complete.** |
