@@ -1,0 +1,193 @@
+---
+import { marked } from 'marked'
+import Base from '../../layouts/Base.astro'
+import { getJson, getMarkdown } from '../../lib/s3'
+import type { TocData, TocEntry } from '../../lib/types'
+
+export async function getStaticPaths() {
+  try {
+    const toc = await getJson<TocData>('site/current/toc.json')
+    return toc.topics.map((topic) => ({
+      params: { slug: topic.slug },
+      props: { topic },
+    }))
+  } catch {
+    return []
+  }
+}
+
+interface Props { topic: TocEntry }
+const { topic } = Astro.props
+
+// Derive the S3 content key from the topic_id and current version
+const contentKey = `published/topics/${topic.topic_id}/${topic.version}/content.md`
+let rawMarkdown = ''
+try {
+  rawMarkdown = await getMarkdown(contentKey)
+} catch {
+  rawMarkdown = `# ${topic.title}\n\nContent could not be loaded.`
+}
+
+const html = marked.parse(rawMarkdown) as string
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+const PUBLIC_API = import.meta.env.PUBLIC_API_BASE_URL ?? ''
+---
+<Base title={topic.title} description={topic.description}>
+  <div style="max-width:1100px;margin:0 auto;padding:48px 24px;display:grid;grid-template-columns:220px 1fr;gap:48px;align-items:start;">
+
+    <!-- Sidebar: nav back + metadata -->
+    <aside style="position:sticky;top:24px;">
+      <a href="/" style="font-size:13px;color:var(--color-muted);text-decoration:none;">← Contents</a>
+
+      <div style="margin-top:20px;display:flex;flex-direction:column;gap:8px;">
+        <span class="badge">{topic.version}</span>
+        <span style="font-size:12px;color:var(--color-muted);">Published {fmtDate(topic.published_at)}</span>
+        <span style="font-size:12px;color:var(--color-muted);">{topic.word_count.toLocaleString()} words</span>
+      </div>
+
+      {topic.release_notes && (
+        <div style="margin-top:20px;padding:12px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius);font-size:13px;line-height:1.6;color:var(--color-muted);">
+          <strong style="display:block;margin-bottom:4px;color:var(--color-text);">What's new</strong>
+          {topic.release_notes}
+        </div>
+      )}
+
+      <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--color-border);">
+        <p style="font-size:12px;color:var(--color-muted);margin-bottom:8px;font-weight:600;">FEEDBACK</p>
+        <button
+          id="btn-comment"
+          style="width:100%;font:inherit;cursor:pointer;border:1px solid var(--color-border);background:var(--color-surface);border-radius:var(--radius);padding:7px 12px;font-size:13px;color:var(--color-muted);text-align:left;"
+        >
+          + Leave a comment
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <article>
+      <div id="chapter-content" class="prose" data-topic-id={topic.topic_id} set:html={html} />
+
+      <!-- Highlight tooltip (injected by highlight-widget.js) -->
+      <div id="highlight-tooltip" style="display:none;position:absolute;z-index:100;background:var(--color-text);color:#fff;border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer;user-select:none;">
+        💬 Comment on selection
+      </div>
+
+      <!-- Comment form (toggled by sidebar button) -->
+      <div id="comment-form" style="display:none;margin-top:40px;border-top:1px solid var(--color-border);padding-top:32px;">
+        <h3 style="font-size:1rem;margin-bottom:12px;">Leave a comment</h3>
+        <textarea
+          id="comment-text"
+          rows="4"
+          placeholder="Share your thoughts on this chapter…"
+          style="width:100%;font:inherit;padding:10px 14px;border:1px solid var(--color-border);border-radius:var(--radius);font-size:14px;resize:vertical;margin-bottom:10px;"
+        ></textarea>
+        <div style="display:flex;gap:10px;">
+          <button id="btn-submit-comment" style="font:inherit;cursor:pointer;background:var(--color-primary);color:#fff;border:none;border-radius:var(--radius);padding:8px 20px;font-size:14px;font-weight:500;">
+            Submit
+          </button>
+          <button id="btn-cancel-comment" style="font:inherit;cursor:pointer;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius);padding:8px 16px;font-size:14px;">
+            Cancel
+          </button>
+        </div>
+        <p id="comment-status" style="margin-top:8px;font-size:13px;color:var(--color-muted);"></p>
+      </div>
+    </article>
+
+  </div>
+
+  <!-- Client-side highlight + comment widget -->
+  <script define:vars={{ topicId: topic.topic_id, publicApiBase: PUBLIC_API }}>
+    // ── Comment form toggle ────────────────────────────────────────────────
+    document.getElementById('btn-comment')?.addEventListener('click', () => {
+      const form = document.getElementById('comment-form')
+      if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none'
+    })
+
+    document.getElementById('btn-cancel-comment')?.addEventListener('click', () => {
+      const form = document.getElementById('comment-form')
+      if (form) form.style.display = 'none'
+    })
+
+    document.getElementById('btn-submit-comment')?.addEventListener('click', async () => {
+      const text = (document.getElementById('comment-text')).value.trim()
+      const status = document.getElementById('comment-status')
+      if (!text) { status.textContent = 'Please enter a comment.'; return }
+      status.textContent = 'Submitting…'
+      try {
+        const res = await fetch(`${publicApiBase}/public/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic_id: topicId, comment_text: text, section_id: null }),
+        })
+        if (res.ok) {
+          status.textContent = '✓ Comment submitted — thank you!'
+          document.getElementById('comment-text').value = ''
+        } else {
+          status.textContent = 'Submission failed. Please try again.'
+        }
+      } catch {
+        status.textContent = 'Network error. Please try again.'
+      }
+    })
+
+    // ── Text selection highlight widget ───────────────────────────────────
+    const tooltip = document.getElementById('highlight-tooltip')
+    let pendingSelection = null
+
+    document.getElementById('chapter-content')?.addEventListener('mouseup', () => {
+      const sel = window.getSelection()
+      if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+        if (tooltip) tooltip.style.display = 'none'
+        return
+      }
+      pendingSelection = {
+        text: sel.toString().trim(),
+        // Nearest section heading as anchor
+        sectionId: sel.anchorNode?.parentElement?.closest('[id]')?.id ?? null,
+      }
+      const range = sel.getRangeAt(0)
+      const rect = range.getBoundingClientRect()
+      if (tooltip) {
+        tooltip.style.display = 'block'
+        tooltip.style.top = `${window.scrollY + rect.top - 44}px`
+        tooltip.style.left = `${window.scrollX + rect.left}px`
+      }
+    })
+
+    tooltip?.addEventListener('click', async () => {
+      if (!pendingSelection) return
+      tooltip.style.display = 'none'
+      try {
+        await fetch(`${publicApiBase}/public/highlights`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topic_id: topicId,
+            section_id: pendingSelection.sectionId,
+            selected_text: pendingSelection.text,
+          }),
+        })
+      } catch { /* non-fatal */ }
+      pendingSelection = null
+      // Show comment form pre-filled context
+      const form = document.getElementById('comment-form')
+      const textarea = document.getElementById('comment-text')
+      if (form && textarea) {
+        form.style.display = 'block'
+        textarea.value = `Re: "${pendingSelection?.text?.slice(0, 80) ?? ''}" — `
+        textarea.focus()
+      }
+    })
+
+    // Hide tooltip on click-away
+    document.addEventListener('mousedown', (e) => {
+      if (tooltip && !tooltip.contains(e.target)) {
+        tooltip.style.display = 'none'
+      }
+    })
+  </script>
+</Base>

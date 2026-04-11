@@ -202,7 +202,7 @@ Requires: `GITHUB_TOKEN` env var in shell profile (not `.env.local`).
 | 4 | Multi-Agent Pipeline | ✅ Complete |
 | 5 | Admin Review + Approval | ✅ Complete |
 | 6 | Incremental Publishing | ✅ Complete |
-| 7 | Public Website | ⏳ Pending |
+| 7 | Public Website | ✅ Complete |
 | 8 | Run History + Feedback UI | ⏳ Pending |
 | 9 | Weekly Digest | ⏳ Pending |
 | 10 | Jupyter Notebook Test Harness | ⏳ Pending |

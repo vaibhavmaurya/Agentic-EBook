@@ -7,18 +7,19 @@
 
 ## ▶ RESUME HERE
 
-**Session ended:** 2026-04-11
-**Last completed:** M5 COMPLETE (backend + UI) — `reviews.py` updated to inline S3 artifact content (browser can't access private S3). `approval_worker.py` writes DRAFT# DDB record and stores topic title in REVIEW record. Admin UI: `ReviewQueuePage` (pending list, timeout countdown, 30s poll, urgency styling), `ReviewDetailPage` (content viewer, diff panel, scorecard bars, approve/reject form). Nav badge shows pending count. `App.tsx` routes wired. `npm run build` passes — 0 errors.
-**Next action:** Start **M7** — Public Astro site. Build `apps/public-site/` with: home page (TOC from S3 toc.json), per-topic chapter pages, Lunr.js search, text highlight + comment widget calling `/public/highlights` and `/public/comments`.
+**Session ended:** 2026-04-10
+**Last completed:** M7 COMPLETE — Public Astro site fully built: `astro.config.mjs`, `Base.astro` layout, `index.astro` (TOC), `topics/[slug].astro` (chapter + comment/highlight widget), `search.astro` (Lunr.js), `releases.astro`. `lib/s3.ts` + `lib/types.ts`. `services/api/public.py` fully implemented (POST /public/comments, POST /public/highlights, GET /public/releases/latest). `local_dev_server.py` already had public routes wired. `tslib` dependency added. `npm run build` passes — 3 pages, 0 errors.
+**Next action:** Start **M8** — Run History and Feedback UI. Backend: `GET /admin/topics/{topicId}/runs`, `GET /admin/topics/{topicId}/runs/{runId}`, `GET /admin/feedback/summary`. Admin UI: run history page, run detail (trace timeline + cost), feedback list page.
 
-### Immediate next steps — M7 Public Website:
+### Immediate next steps — M8 Run History + Feedback UI:
 
-1. [ ] **M7-S1:** Astro project scaffold — `astro.config.mjs`, Tailwind (or minimal CSS), layout component
-2. [ ] **M7-S2:** Home page — fetch `toc.json` from S3 at build time, render topic cards with version + release notes
-3. [ ] **M7-S3:** Per-topic chapter page — fetch `content.md` from S3, render Markdown with `@astrojs/mdx` or `marked`
-4. [ ] **M7-S4:** Lunr.js search — load `search/index.json`, build index client-side, render results dropdown
-5. [ ] **M7-S5:** Highlight + comment widget (JS) — capture selected text range, POST to `/public/highlights` and `/public/comments`
-6. [ ] **M7-S6:** `services/api/public.py` already scaffolded — verify POST /public/comments + /public/highlights + GET /public/releases/latest handlers are complete
+1. [ ] **M8-S1:** Add `GET /admin/topics/{topicId}/runs` + `GET /admin/topics/{topicId}/runs/{runId}` to `services/api/topics.py`
+2. [ ] **M8-S2:** Add `GET /admin/feedback/summary` to `services/api/public.py` (admin-facing feedback endpoint, add to reviews.py or new feedback.py)
+3. [ ] **M8-S3:** Wire new routes in `local_dev_server.py`
+4. [ ] **M8-S4:** Admin UI — `RunHistoryPage` (per-topic run list with status, cost_usd, timestamps)
+5. [ ] **M8-S5:** Admin UI — `RunDetailPage` (stage-by-stage trace event timeline, token usage, cost per stage, retry button)
+6. [ ] **M8-S6:** Admin UI — `FeedbackPage` (comments + highlights per topic, moderation status)
+7. [ ] **M8-S7:** Wire new pages/routes in `App.tsx`, add nav links to Layout
 
 ### M6 Incremental Publishing:
 
@@ -60,7 +61,7 @@
 | 4 | Multi-Agent Pipeline | ✅ Complete | 2026-04-10 |
 | 5 | Admin Review + Approval | ✅ Complete | 2026-04-11 |
 | 6 | Incremental Publishing | ✅ Complete | 2026-04-11 |
-| 7 | Public Website | ⏳ Pending | — |
+| 7 | Public Website | ✅ Complete | 2026-04-10 |
 | 8 | Run History + Feedback UI | ⏳ Pending | — |
 | 9 | Weekly Digest | ⏳ Pending | — |
 | 10 | Jupyter Notebook Test Harness | ⏳ Pending | — |
@@ -380,3 +381,4 @@ _None currently._
 | 2026-04-10 | M2 backend: services/API.md (full API reference), packages/shared-types (models.py, tracer.py, __init__.py, setup.py), services/api/topics.py (CRUD + trigger handler), local_dev_server.py, public.py stub, requirements.txt, unit tests. |
 | 2026-04-10 | M2 Admin UI: apps/admin-site scaffolded (React 19 + Vite 8 + TS 6). LoginPage, TopicListPage (dnd-kit reorder), TopicFormPage. Amplify auth, Zustand, TanStack Query, Axios JWT interceptor. Build passes. apps/UI.md written. **Milestone 2 complete.** |
 | 2026-04-10 | M3: CLAUDE.md Rule 6 (local test before commit). services/workers/base.py + topic_loader.py (real) + topic_context_builder.py + 11 worker stubs. scripts/deploy_workers.sh (Linux manylinux zip). topic_loader deployed to ebook-platform-dev-topic-loader. End-to-end: trigger → SFN → LoadTopicConfig TaskSucceeded → trace events in DDB → WaitForApproval reached. **Milestone 3 complete.** |
+| 2026-04-10 | M6+M7: publish_worker.py (version incrementing, PUBLISHED# DDB, META update), search_index_worker.py (Lunr docs + toc.json + sitemap.json). Public Astro site: astro.config.mjs, Base.astro, index.astro, topics/[slug].astro (comment/highlight widget), search.astro (Lunr.js), releases.astro, lib/s3.ts, lib/types.ts. services/api/public.py fully implemented. tslib added. npm run build passes (3 pages, 0 errors). **Milestones 6+7 complete.** |

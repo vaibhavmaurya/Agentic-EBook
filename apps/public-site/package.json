@@ -1,0 +1,21 @@
+{
+  "name": "public-site",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1029.0",
+    "astro": "^6.1.5",
+    "lunr": "^2.3.9",
+    "marked": "^18.0.0",
+    "tslib": "^2.8.1"
+  }
+}

@@ -1,0 +1,95 @@
+---
+interface Props {
+  title: string
+  description?: string
+}
+const { title, description = 'An AI-researched and human-curated ebook.' } = Astro.props
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style is:global>
+      *, *::before, *::after { box-sizing: border-box; }
+      :root {
+        --color-bg:       #f9fafb;
+        --color-surface:  #ffffff;
+        --color-border:   #e5e7eb;
+        --color-text:     #111827;
+        --color-muted:    #6b7280;
+        --color-primary:  #4f46e5;
+        --color-primary-h:#4338ca;
+        --color-accent:   #7c3aed;
+        --radius:         8px;
+        --shadow:         0 1px 3px rgba(0,0,0,.08);
+        font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+        font-size: 16px;
+        color: var(--color-text);
+        background: var(--color-bg);
+      }
+      body { margin: 0; min-height: 100svh; }
+      h1,h2,h3,h4 { margin: 0; font-weight: 700; line-height: 1.3; }
+      p { margin: 0; line-height: 1.7; }
+      a { color: var(--color-primary); }
+      a:hover { color: var(--color-primary-h); }
+      img { max-width: 100%; }
+
+      /* Prose styles for rendered Markdown */
+      .prose {
+        max-width: 72ch;
+        line-height: 1.8;
+      }
+      .prose h1 { font-size: 2rem; margin: 0 0 1rem; }
+      .prose h2 { font-size: 1.4rem; margin: 2.5rem 0 0.75rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.4rem; }
+      .prose h3 { font-size: 1.15rem; margin: 1.75rem 0 0.5rem; }
+      .prose p  { margin: 0 0 1rem; }
+      .prose ul, .prose ol { padding-left: 1.5rem; margin: 0 0 1rem; }
+      .prose li { margin-bottom: 0.25rem; }
+      .prose pre { background: #1e1e2e; color: #cdd6f4; border-radius: var(--radius); padding: 1rem 1.25rem; overflow-x: auto; margin: 0 0 1rem; font-size: 0.875rem; }
+      .prose code { font-family: 'Fira Code', 'Cascadia Code', monospace; font-size: 0.875em; background: #f3f4f6; padding: 0.15em 0.35em; border-radius: 4px; }
+      .prose pre code { background: none; padding: 0; font-size: inherit; }
+      .prose blockquote { border-left: 3px solid var(--color-primary); padding-left: 1rem; color: var(--color-muted); margin: 0 0 1rem; }
+      .prose table { width: 100%; border-collapse: collapse; margin: 0 0 1rem; font-size: 0.9rem; }
+      .prose th, .prose td { border: 1px solid var(--color-border); padding: 0.5rem 0.75rem; text-align: left; }
+      .prose th { background: var(--color-bg); font-weight: 600; }
+
+      /* Utility */
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 99px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        background: #ede9fe;
+        color: var(--color-accent);
+      }
+    </style>
+  </head>
+  <body>
+    <header style="background:var(--color-surface);border-bottom:1px solid var(--color-border);padding:0 24px;">
+      <div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px;">
+        <a href="/" style="font-weight:700;font-size:18px;text-decoration:none;color:var(--color-text);">
+          📖 Ebook
+        </a>
+        <nav style="display:flex;gap:20px;align-items:center;">
+          <a href="/" style="font-size:14px;text-decoration:none;color:var(--color-muted);">Contents</a>
+          <a href="/search" style="font-size:14px;text-decoration:none;color:var(--color-muted);">Search</a>
+          <a href="/releases" style="font-size:14px;text-decoration:none;color:var(--color-muted);">Releases</a>
+        </nav>
+      </div>
+    </header>
+
+    <slot />
+
+    <footer style="margin-top:80px;border-top:1px solid var(--color-border);padding:24px;text-align:center;font-size:13px;color:var(--color-muted);">
+      Content researched and drafted by AI · reviewed and approved by humans.
+    </footer>
+  </body>
+</html>
