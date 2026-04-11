@@ -1,326 +1,269 @@
 # Agentic Ebook Platform V3
 
-A dynamic, per-topic publishing platform where AI agents research, draft, and stage content for each topic. A human admin reviews and approves before incremental publish to a public ebook website. Runs entirely on AWS.
+An AI-powered publishing platform where autonomous agents research, draft, and stage
+web-based ebook content on a per-topic basis. A human administrator reviews every draft
+before it is published — no AI content goes live without approval.
+
+The platform runs entirely on AWS and is managed through two web interfaces: an admin
+console for content management, and a public reader-facing ebook website.
 
 ---
 
-## How it works
-
-1. Admin creates a **topic** (title, instructions, schedule) via the admin UI
-2. A **pipeline** is triggered manually or on a schedule
-3. Six AI agents run in sequence: Planner → Research → Verifier → Writer → Editor → Diff
-4. Admin receives a notification and **reviews the staged draft** — approve or reject
-5. On approval, the chapter is **published** to the public ebook site
-6. Readers browse, search, highlight, and comment on published content
-
----
-
-## Repository layout
+## How It Works
 
 ```
-repo/
-  apps/
-    admin-site/        React + Vite SPA (admin console)
-    public-site/       Astro static site (reader-facing — M7)
-  services/
-    api/               Lambda handlers (topics CRUD, trigger, review, public)
-    workers/           Step Functions Lambda workers (pipeline stages)
-    openai-runtime/    OpenAI SDK adapter (only place openai is imported)
-    content-build/     Search index + TOC builder
-  packages/
-    shared-types/      Pydantic models + DynamoDB trace writer
-    prompt-policies/   Agent prompt style guide
-  infra/
-    terraform/
-      modules/         One module per AWS resource group (13 modules)
-      envs/dev/        Dev environment composition
-  notebooks/           Jupyter end-to-end test harness (UC-01 → UC-15)
-  docs/                Local dev guide, architecture notes
-```
-
----
-
-## Prerequisites
-
-| Tool | Min version | Install |
-|---|---|---|
-| Python | 3.12 | [python.org](https://www.python.org/downloads/) |
-| Node.js | 20 | [nodejs.org](https://nodejs.org/) |
-| Terraform | 1.7 | `choco install terraform` (Windows) · `brew install terraform` (Mac) |
-| AWS CLI | 2.x | [docs.aws.amazon.com/cli](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) |
-| Docker | Latest | [docker.com](https://www.docker.com/) — optional, for Step Functions Local |
-
----
-
-## Quick start — local development
-
-### 1. Clone and configure credentials
-
-```bash
-git clone https://github.com/vaibhavmaurya/Agentic-EBook.git
-cd Agentic-EBook
-cp .env.local.example .env.local
-```
-
-Open `.env.local` and fill in your AWS dev credentials and resource names:
-
-```env
-AWS_ACCESS_KEY_ID=your_key
-AWS_SECRET_ACCESS_KEY=your_secret
-AWS_REGION=us-east-1
-AWS_ACCOUNT_ID=your_account_id
-
-DYNAMODB_TABLE_NAME=ebook-platform-dev
-S3_ARTIFACT_BUCKET=ebook-platform-artifacts-dev
-STEP_FUNCTIONS_ARN=arn:aws:states:us-east-1:<account>:stateMachine:ebook-platform-dev-topic-pipeline
-
-COGNITO_USER_POOL_ID=us-east-1_XXXXXXXXX
-COGNITO_CLIENT_ID=XXXXXXXXXXXXXXXXXXXXXXXXXX
-
-SES_SENDER_EMAIL=you@example.com
-OWNER_EMAIL=you@example.com
-
-OPENAI_SECRET_NAME=ebook-platform/openai-key
-ADMIN_API_BASE_URL=http://localhost:8000
-PUBLIC_API_BASE_URL=http://localhost:8000
-ADMIN_USERNAME=you@example.com
-ADMIN_PASSWORD=YourPassword
-```
-
-> All values are filled in automatically after you run `terraform apply` — see Step 2.
-
----
-
-### 2. Provision AWS infrastructure
-
-The dev environment is fully managed by Terraform. One `apply` creates all 83 AWS resources.
-
-```bash
-cd infra/terraform/envs/dev
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars: set aws_account_id, ses_sender_email, owner_email
-```
-
-```bash
-terraform init
-terraform plan     # review — should show ~83 resources to create
-terraform apply
-```
-
-After apply, note the outputs — copy them into `.env.local`:
-
-```
-api_endpoint         = "https://xxxx.execute-api.us-east-1.amazonaws.com"
-cognito_user_pool_id = "us-east-1_XXXXXXX"
-cognito_client_id    = "XXXXXXXXXXXXXXXXXXXXXXXXXX"
-dynamodb_table_name  = "ebook-platform-dev"
-s3_artifact_bucket   = "ebook-platform-artifacts-dev"
-state_machine_arn    = "arn:aws:states:..."
-```
-
-**Create your admin user (one-time):**
-
-```bash
-# Create user
-aws cognito-idp admin-create-user \
-  --user-pool-id <cognito_user_pool_id> \
-  --username you@example.com \
-  --message-action SUPPRESS \
-  --user-attributes Name=email,Value=you@example.com Name=email_verified,Value=true
-
-# Set a permanent password
-aws cognito-idp admin-set-user-password \
-  --user-pool-id <cognito_user_pool_id> \
-  --username you@example.com \
-  --password "YourPassword123!" \
-  --permanent
-
-# Add to admins group
-aws cognito-idp admin-add-user-to-group \
-  --user-pool-id <cognito_user_pool_id> \
-  --username you@example.com \
-  --group-name admins
-```
-
-**Set your OpenAI API key:**
-
-```bash
-aws secretsmanager put-secret-value \
-  --secret-id ebook-platform/openai-key \
-  --secret-string '{"api_key": "sk-..."}'
-```
-
-**Verify your SES sender email:**
-
-Go to AWS Console → SES → Verified identities → verify `you@example.com`.
-In the SES sandbox, the owner email also needs to be verified before digests can be sent.
-
----
-
-### 3. Set up the Python environment
-
-A single virtual environment at the repo root covers all services.
-
-```bash
-# From the repo root
-python -m venv .venv
-
-# Activate — choose your shell:
-.venv\Scripts\activate.bat       # Windows CMD
-.venv\Scripts\Activate.ps1       # Windows PowerShell
-source .venv/bin/activate        # macOS / Linux
-
-# Install all backend dependencies
-pip install -r services/api/requirements.txt
-pip install -e packages/shared-types
+Admin creates a topic
+        │
+        ▼
+Scheduled or manual trigger
+        │
+        ▼
+AI pipeline runs (Step Functions)
+  ├── Planner    — designs the research strategy
+  ├── Researcher — searches the web, collects evidence
+  ├── Verifier   — checks source quality and accuracy
+  ├── Writer     — drafts the chapter
+  ├── Editor     — refines and scores the draft
+  └── Diff       — compares to prior published version
+        │
+        ▼
+Admin receives email → reviews staged draft → Approve or Reject
+        │ (approve)
+        ▼
+Chapter published to public ebook site
+        │
+        ▼
+Readers browse, search, highlight, and comment
 ```
 
 ---
 
-### 4. Start the API server
+## Live URLs (Dev Environment)
 
-The server reads `.env.local` automatically — no need to export variables manually.
-
-```bash
-# With venv activated:
-cd services/api
-uvicorn local_dev_server:app --reload --port 8000
-
-# Without activating venv (always works on Windows):
-cd services/api
-../../.venv/Scripts/python -m uvicorn local_dev_server:app --reload --port 8000
-```
-
-Verify it's running:
-
-```bash
-curl http://localhost:8000/health
-# → {"status": "ok", "env": "dev"}
-```
-
-Interactive API docs: **http://localhost:8000/docs**
-
----
-
-### 5. Start the Admin UI
-
-In a **separate terminal**:
-
-```bash
-cd apps/admin-site
-npm install       # first time only
-npm run dev
-```
-
-Open **http://localhost:3000** and sign in with your Cognito admin credentials.
-
-The Vite dev server automatically proxies `/admin/*` and `/public/*` to `localhost:8000`.
-
----
-
-### 6. (Optional) Run Step Functions locally
-
-To develop pipeline workers without AWS Step Functions API costs:
-
-```bash
-docker run -p 8083:8083 \
-  -e AWS_DEFAULT_REGION=us-east-1 \
-  -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
-  -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-  amazon/aws-stepfunctions-local
-```
-
-Then set `STEP_FUNCTIONS_ENDPOINT=http://localhost:8083` in `.env.local` and restart the API server.
-
----
-
-### 7. Run the Jupyter test harness
-
-The notebook exercises every API in use-case order (UC-01 through UC-15).
-
-```bash
-# With venv activated:
-pip install -r notebooks/requirements.txt
-jupyter notebook notebooks/ebook_platform_test_harness.ipynb
-```
-
-Run cells top-to-bottom for a full end-to-end test. Run **Cell Group 16 (PURGE)** at the end to clean up all test data from DynamoDB and S3.
-
----
-
-## Running individual pipeline workers
-
-Workers can be tested in isolation without running the full Step Functions pipeline:
-
-```bash
-# With venv activated and .env.local values exported:
-source .env.local    # macOS/Linux
-# Windows: run the server (which auto-loads .env.local) or set vars manually
-
-python services/workers/topic_loader.py --topic-id <id> --run-id <run_id>
-```
-
----
-
-## Tearing down the dev environment
-
-To destroy all AWS resources and stop incurring costs:
-
-```bash
-cd infra/terraform/envs/dev
-terraform destroy
-```
-
-> The S3 artifact bucket has `force_destroy = true` in dev, so all objects are deleted automatically. See `infra/AWS.md` for details on cost and teardown options.
-
----
-
-## Project documentation
-
-| Document | Contents |
+| Interface | URL |
 |---|---|
-| `plan.md` | Full MVP plan — milestones, DynamoDB schema, pipeline stages, API endpoints |
-| `DevelopmentPlan.md` | Stack decisions, MCP tools, environment variables reference |
-| `action-item.md` | Session resume tracker — current milestone, what's next |
-| `infra/AWS.md` | AWS service cost guide, Terraform provisioning + teardown |
-| `services/API.md` | Full API reference with request/response examples and curl commands |
-| `apps/UI.md` | Admin SPA design decisions, local dev guide, page map, test checklist |
-| `docs/local-dev.md` | Detailed local development guide |
-| `packages/prompt-policies/style_guide.md` | Agent prompt style guide |
+| Admin Console | https://dev.d200xw9mmlu4wj.amplifyapp.com |
+| Public Ebook Site | https://dev.djcvgu9ysuar.amplifyapp.com |
+| API Base URL | https://gcqq4kkov1.execute-api.us-east-1.amazonaws.com |
 
 ---
 
-## Milestone status
+## Documentation
 
-| # | Milestone | Status |
-|---|---|---|
-| 1 | Terraform Infrastructure Foundation | ✅ Complete |
-| 2 | Topic CRUD API + Admin UI | ✅ Complete |
-| 3 | Scheduling + Manual Trigger | ⏳ Pending |
-| 4 | Multi-Agent Pipeline | ⏳ Pending |
-| 5 | Admin Review + Approval | ⏳ Pending |
-| 6 | Incremental Publishing | ⏳ Pending |
-| 7 | Public Website | ⏳ Pending |
-| 8 | Run History + Feedback UI | ⏳ Pending |
-| 9 | Weekly Digest | ⏳ Pending |
-| 10 | Jupyter Notebook Test Harness | ⏳ Pending |
+Start here depending on what you want to do:
+
+| Document | When to read it |
+|---|---|
+| [Local Development Guide](docs/guide-local-development.md) | Setting up and running the app on your own machine |
+| [AWS Deployment Guide](docs/guide-aws-deployment.md) | Deploying the app to AWS from scratch |
+| [API Reference (Swagger)](http://localhost:8000/docs) | Interactive API explorer — start the local server first |
+| [Deployment Operations](docs/deployment.md) | Deploy scripts reference, verification commands, troubleshooting |
 
 ---
 
-## Tech stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Admin UI | React 19 + Vite 8 + TypeScript 6 |
-| Public site | Astro (M7) |
-| Auth | Amazon Cognito |
-| API | API Gateway HTTP API + AWS Lambda (Python 3.12) |
-| Orchestration | AWS Step Functions Standard Workflow |
-| Scheduling | Amazon EventBridge Scheduler |
-| AI | OpenAI Responses API (gpt-4o / gpt-4o-mini) |
-| Metadata store | Amazon DynamoDB (single-table) |
+| Admin UI | React 19 + Vite + TypeScript |
+| Public Site | Astro (static export) |
+| Authentication | Amazon Cognito |
+| API | API Gateway HTTP API + Lambda (Python 3.12) |
+| AI Pipeline | AWS Step Functions + 14 Lambda workers |
+| AI Agents | OpenAI API — gpt-4o (research/write/edit), gpt-4o-mini (plan/verify/diff) |
+| Metadata store | Amazon DynamoDB (single-table design) |
 | Artifact store | Amazon S3 |
-| Secrets | AWS Secrets Manager |
+| Scheduling | Amazon EventBridge Scheduler |
 | Email | Amazon SES |
+| Secrets | AWS Secrets Manager |
 | Hosting | AWS Amplify |
-| IaC | Terraform 1.7+ |
+| Infrastructure | Terraform 1.7+ |
+
+---
+
+## Repository Structure
+
+```
+Agentic-EBook/
+├── apps/
+│   ├── admin-site/         React + Vite admin console (port 3000 locally)
+│   └── public-site/        Astro reader-facing ebook website (port 4321 locally)
+│
+├── services/
+│   ├── api/                Lambda handlers — topics, reviews, feedback, public routes
+│   │   └── local_dev_server.py   FastAPI wrapper for local development
+│   ├── workers/            14 Step Functions Lambda workers (one per pipeline stage)
+│   ├── openai_runtime/     OpenAI SDK adapter — the ONLY place openai is imported
+│   └── content-build/      Search index and TOC builder
+│
+├── packages/
+│   ├── shared-types/       Pydantic models, DynamoDB helpers, trace event writer
+│   └── prompt-policies/    Agent style guides and prompt fragments
+│
+├── infra/
+│   └── terraform/
+│       ├── modules/        13 Terraform modules (one per AWS resource group)
+│       └── envs/dev/       Dev environment composition
+│
+├── notebooks/
+│   └── ebook_platform_test_harness.ipynb   End-to-end tests UC-01 → UC-15
+│
+├── scripts/
+│   ├── deploy_api.sh       Package and deploy the API Lambda
+│   ├── deploy_workers.sh   Package and deploy worker Lambdas
+│   ├── deploy_frontend.sh  Build and deploy Amplify frontends
+│   └── zipdir.py           Cross-platform zip utility used by deploy scripts
+│
+└── docs/
+    ├── guide-local-development.md   Step-by-step local setup guide
+    ├── guide-aws-deployment.md      Step-by-step AWS deployment guide
+    └── deployment.md               Deploy script reference and troubleshooting
+```
+
+---
+
+## Quick Start
+
+### Run Locally
+
+See the full [Local Development Guide](docs/guide-local-development.md). The short version:
+
+```bash
+# 1. Clone
+git clone https://github.com/vaibhavmaurya/Agentic-EBook.git
+cd Agentic-EBook
+
+# 2. Configure credentials
+cp .env.local.example .env.local
+# Fill in AWS credentials and resource names in .env.local
+
+# 3. Provision AWS infrastructure (one time)
+cd infra/terraform/envs/dev && terraform init && terraform apply
+cd ../../../..
+
+# 4. Install Python dependencies
+python -m venv .venv && source .venv/Scripts/activate   # or .venv/bin/activate on Mac/Linux
+pip install -r services/api/requirements.txt
+pip install -e packages/shared-types
+
+# 5. Start all three servers (each in its own terminal)
+cd services/api && uvicorn local_dev_server:app --reload --port 8000  # API
+cd apps/admin-site && npm install && npm run dev                        # Admin UI
+cd apps/public-site && npm install && npm run dev                       # Public site
+```
+
+| Service | URL |
+|---|---|
+| API + Swagger UI | http://localhost:8000/docs |
+| Admin Console | http://localhost:3000 |
+| Public Ebook Site | http://localhost:4321 |
+
+### Deploy to AWS
+
+See the full [AWS Deployment Guide](docs/guide-aws-deployment.md). The short version:
+
+```bash
+# Load environment variables
+export $(cat .env.local | grep -v '#' | grep -v '^$' | xargs)
+
+# Deploy in sequence
+bash scripts/deploy_api.sh           # API Lambda
+bash scripts/deploy_workers.sh       # All 14 pipeline workers
+bash scripts/deploy_frontend.sh      # Admin UI + Public Site to Amplify
+```
+
+---
+
+## Pipeline Stages and Workers
+
+Each Stage is a separate Lambda function invoked by AWS Step Functions:
+
+| Stage | Worker | AI? | What it does |
+|---|---|---|---|
+| LoadTopicConfig | `topic_loader.py` | | Reads topic config from DynamoDB |
+| AssembleTopicContext | `topic_context_builder.py` | | Builds the research context payload |
+| PlanTopic | `planner_worker.py` | gpt-4o-mini | Designs the research plan |
+| ResearchTopic | `research_worker.py` | gpt-4o | Web search and evidence collection |
+| VerifyEvidence | `verifier_worker.py` | gpt-4o-mini | Validates source quality |
+| PersistEvidenceArtifacts | `artifact_persister.py` | | Writes research to S3 |
+| DraftChapter | `draft_worker.py` | gpt-4o | Writes the chapter |
+| EditorialReview | `editorial_worker.py` | gpt-4o | Edits and scores the draft |
+| BuildDraftArtifact | `draft_builder_worker.py` | | Stages HTML/JSON to S3 |
+| GenerateDiffReleaseNotes | `diff_worker.py` | gpt-4o-mini | Diffs against prior version |
+| NotifyAdminForReview | `approval_worker.py` | | Sends email, stores callback token |
+| WaitForApproval | *(Step Functions wait state)* | | Pipeline pauses here |
+| PublishTopic | `publish_worker.py` | | Promotes artifacts to published/ in S3 |
+| RebuildIndexes | `search_index_worker.py` | | Rebuilds Lunr.js search index and TOC |
+
+A 15th Lambda (`digest_worker.py`) runs on a weekly EventBridge schedule to email the
+owner a summary of newly published topics.
+
+---
+
+## API Overview
+
+All admin routes require a **Cognito JWT Bearer token**. Public routes need no auth.
+
+| Method | Route | Auth | Description |
+|---|---|---|---|
+| GET | `/admin/topics` | Required | List all topics |
+| POST | `/admin/topics` | Required | Create a topic |
+| GET | `/admin/topics/{id}` | Required | Get a topic |
+| PUT | `/admin/topics/{id}` | Required | Update a topic |
+| DELETE | `/admin/topics/{id}` | Required | Soft-delete a topic |
+| PUT | `/admin/topics/reorder` | Required | Reorder topics |
+| POST | `/admin/topics/{id}/trigger` | Required | Trigger the AI pipeline |
+| GET | `/admin/topics/{id}/runs` | Required | List pipeline runs |
+| GET | `/admin/topics/{id}/runs/{runId}` | Required | Run detail + trace events |
+| GET | `/admin/reviews` | Required | All pending review queue |
+| GET | `/admin/topics/{id}/review/{runId}` | Required | Get draft for review |
+| POST | `/admin/topics/{id}/review/{runId}` | Required | Approve or reject draft |
+| GET | `/admin/feedback/summary` | Required | Feedback across all topics |
+| GET | `/admin/topics/{id}/feedback` | Required | Feedback for one topic |
+| POST | `/public/comments` | None | Submit a reader comment |
+| POST | `/public/highlights` | None | Submit a text highlight |
+| GET | `/public/releases/latest` | None | Recently published topics |
+
+Full interactive docs with request/response schemas: run the API server and open
+[http://localhost:8000/docs](http://localhost:8000/docs).
+
+---
+
+## Key Design Decisions
+
+**Only `services/openai_runtime/` imports the OpenAI SDK.** All other modules call
+the functions exposed by that module's `__init__.py`. This keeps the AI dependency
+isolated and replaceable.
+
+**No content is published without human approval.** The Step Functions pipeline always
+pauses at `WaitForApproval` using a callback token pattern. Approval via the API
+explicitly resumes the execution.
+
+**No AWS credentials in source code.** All config is read from environment variables
+at runtime. Lambda functions read from their environment; the local dev server reads
+from `.env.local` via python-dotenv. `.env.local` is gitignored.
+
+**Per-topic EventBridge schedules are created at runtime by the API**, not by Terraform.
+Terraform only provisions the schedule group. This keeps infrastructure minimal and
+lets admins change topic schedules without a Terraform apply.
+
+**All dev tests hit real AWS resources.** There is no mocking of DynamoDB, S3, or
+Step Functions. The Jupyter notebook test harness (`notebooks/`) is the primary
+integration test suite.
+
+---
+
+## Milestone Status
+
+| # | Milestone | Status |
+|---|---|---|
+| 1 | Terraform Infrastructure Foundation | Complete |
+| 2 | Topic CRUD API + Admin UI | Complete |
+| 3 | Scheduling + Manual Trigger | Complete |
+| 4 | Multi-Agent Pipeline | Complete |
+| 5 | Admin Review + Approval | Complete |
+| 6 | Incremental Publishing | Complete |
+| 7 | Public Website | Complete |
+| 8 | Run History + Feedback UI | Complete |
+| 9 | Weekly Digest | Complete |
+| 10 | Jupyter Notebook Test Harness | Complete |
