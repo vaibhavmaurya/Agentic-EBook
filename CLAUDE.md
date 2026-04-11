@@ -203,8 +203,8 @@ Requires: `GITHUB_TOKEN` env var in shell profile (not `.env.local`).
 | 5 | Admin Review + Approval | ✅ Complete |
 | 6 | Incremental Publishing | ✅ Complete |
 | 7 | Public Website | ✅ Complete |
-| 8 | Run History + Feedback UI | ⏳ Pending |
-| 9 | Weekly Digest | ⏳ Pending |
+| 8 | Run History + Feedback UI | ✅ Complete |
+| 9 | Weekly Digest | ✅ Complete |
 | 10 | Jupyter Notebook Test Harness | ⏳ Pending |
 
 **Detailed task checklists and RESUME point:** see `action-item.md`.

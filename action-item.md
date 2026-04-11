@@ -9,17 +9,17 @@
 
 **Session ended:** 2026-04-10
 **Last completed:** M7 COMPLETE — Public Astro site fully built: `astro.config.mjs`, `Base.astro` layout, `index.astro` (TOC), `topics/[slug].astro` (chapter + comment/highlight widget), `search.astro` (Lunr.js), `releases.astro`. `lib/s3.ts` + `lib/types.ts`. `services/api/public.py` fully implemented (POST /public/comments, POST /public/highlights, GET /public/releases/latest). `local_dev_server.py` already had public routes wired. `tslib` dependency added. `npm run build` passes — 3 pages, 0 errors.
-**Next action:** Start **M8** — Run History and Feedback UI. Backend: `GET /admin/topics/{topicId}/runs`, `GET /admin/topics/{topicId}/runs/{runId}`, `GET /admin/feedback/summary`. Admin UI: run history page, run detail (trace timeline + cost), feedback list page.
+**Next action:** Start **M10** — Jupyter Notebook Test Harness. Implement all cell groups UC-01→UC-15 in `notebooks/ebook_platform_test_harness.ipynb`, then PURGE cell.
 
-### Immediate next steps — M8 Run History + Feedback UI:
+### Immediate next steps — M10 Jupyter Notebook:
 
-1. [ ] **M8-S1:** Add `GET /admin/topics/{topicId}/runs` + `GET /admin/topics/{topicId}/runs/{runId}` to `services/api/topics.py`
-2. [ ] **M8-S2:** Add `GET /admin/feedback/summary` to `services/api/public.py` (admin-facing feedback endpoint, add to reviews.py or new feedback.py)
-3. [ ] **M8-S3:** Wire new routes in `local_dev_server.py`
-4. [ ] **M8-S4:** Admin UI — `RunHistoryPage` (per-topic run list with status, cost_usd, timestamps)
-5. [ ] **M8-S5:** Admin UI — `RunDetailPage` (stage-by-stage trace event timeline, token usage, cost per stage, retry button)
-6. [ ] **M8-S6:** Admin UI — `FeedbackPage` (comments + highlights per topic, moderation status)
-7. [ ] **M8-S7:** Wire new pages/routes in `App.tsx`, add nav links to Layout
+1. [ ] **M10-S1:** Cell Group 0 — setup, boto3 clients, connectivity check
+2. [ ] **M10-S2:** Cell Groups 1-3 — topic CRUD (create, update, reorder)
+3. [ ] **M10-S3:** Cell Groups 4-6 — trigger, schedule smoke, pipeline wait
+4. [ ] **M10-S4:** Cell Groups 7-9 — approve, reject, incremental update
+5. [ ] **M10-S5:** Cell Groups 10-12 — search, highlight+comment, feedback summary
+6. [ ] **M10-S6:** Cell Groups 13-15 — digest trigger, failed run investigation, cost
+7. [ ] **M10-S7:** Cell Group 16 — PURGE (stop SFN, delete schedules, DDB, S3)
 
 ### M6 Incremental Publishing:
 
@@ -62,8 +62,8 @@
 | 5 | Admin Review + Approval | ✅ Complete | 2026-04-11 |
 | 6 | Incremental Publishing | ✅ Complete | 2026-04-11 |
 | 7 | Public Website | ✅ Complete | 2026-04-10 |
-| 8 | Run History + Feedback UI | ⏳ Pending | — |
-| 9 | Weekly Digest | ⏳ Pending | — |
+| 8 | Run History + Feedback UI | ✅ Complete | 2026-04-10 |
+| 9 | Weekly Digest | ✅ Complete | 2026-04-10 |
 | 10 | Jupyter Notebook Test Harness | ⏳ Pending | — |
 
 ---
@@ -382,3 +382,5 @@ _None currently._
 | 2026-04-10 | M2 Admin UI: apps/admin-site scaffolded (React 19 + Vite 8 + TS 6). LoginPage, TopicListPage (dnd-kit reorder), TopicFormPage. Amplify auth, Zustand, TanStack Query, Axios JWT interceptor. Build passes. apps/UI.md written. **Milestone 2 complete.** |
 | 2026-04-10 | M3: CLAUDE.md Rule 6 (local test before commit). services/workers/base.py + topic_loader.py (real) + topic_context_builder.py + 11 worker stubs. scripts/deploy_workers.sh (Linux manylinux zip). topic_loader deployed to ebook-platform-dev-topic-loader. End-to-end: trigger → SFN → LoadTopicConfig TaskSucceeded → trace events in DDB → WaitForApproval reached. **Milestone 3 complete.** |
 | 2026-04-10 | M6+M7: publish_worker.py (version incrementing, PUBLISHED# DDB, META update), search_index_worker.py (Lunr docs + toc.json + sitemap.json). Public Astro site: astro.config.mjs, Base.astro, index.astro, topics/[slug].astro (comment/highlight widget), search.astro (Lunr.js), releases.astro, lib/s3.ts, lib/types.ts. services/api/public.py fully implemented. tslib added. npm run build passes (3 pages, 0 errors). **Milestones 6+7 complete.** |
+| 2026-04-10 | M8: topics.py + GET /runs + GET /runs/{runId}. feedback.py (GET /admin/feedback/summary, GET /topics/{id}/feedback). local_dev_server.py wired. Admin UI: RunHistoryPage, RunDetailPage (trace timeline + cost bars), FeedbackPage (collapsible per-topic cards). Nav links added. npm run build passes. **Milestone 8 complete.** |
+| 2026-04-10 | M9: digest_worker.py fully implemented (DDB scan, HTML + plain-text email, SES send, NOTIF record). EventBridge weekly schedule (every Monday 08:00 UTC) in Terraform eventbridge_scheduler module. aws_lambda_permission for EventBridge → digest Lambda. terraform validate passes. **Milestone 9 complete.** |

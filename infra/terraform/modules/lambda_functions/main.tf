@@ -101,6 +101,14 @@ resource "aws_lambda_function" "digest" {
   depends_on = [aws_cloudwatch_log_group.digest]
 }
 
+# Allow EventBridge Scheduler to invoke the digest Lambda
+resource "aws_lambda_permission" "scheduler_invoke_digest" {
+  statement_id  = "AllowEventBridgeScheduler"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.digest.function_name
+  principal     = "scheduler.amazonaws.com"
+}
+
 # ── Pipeline worker Lambdas (one per Step Functions state) ───────────────────
 
 resource "aws_lambda_function" "workers" {

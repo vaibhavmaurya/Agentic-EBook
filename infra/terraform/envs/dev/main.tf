@@ -176,8 +176,10 @@ module "eventbridge_scheduler" {
   env     = var.env
   project = var.project
 
-  scheduler_role_arn    = module.iam.scheduler_role_arn
-  state_machine_arn     = local.state_machine_arn
+  scheduler_role_arn     = module.iam.scheduler_role_arn
+  state_machine_arn      = local.state_machine_arn
+  digest_lambda_arn      = module.lambda_functions.digest_worker_arn
+  digest_lambda_role_arn = module.iam.digest_lambda_role_arn
 }
 
 ###############################################################################
