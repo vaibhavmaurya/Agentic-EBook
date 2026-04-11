@@ -9,14 +9,23 @@
 
 **Session ended:** 2026-04-11
 **Last completed:** M5 COMPLETE (backend + UI) — `reviews.py` updated to inline S3 artifact content (browser can't access private S3). `approval_worker.py` writes DRAFT# DDB record and stores topic title in REVIEW record. Admin UI: `ReviewQueuePage` (pending list, timeout countdown, 30s poll, urgency styling), `ReviewDetailPage` (content viewer, diff panel, scorecard bars, approve/reject form). Nav badge shows pending count. `App.tsx` routes wired. `npm run build` passes — 0 errors.
-**Next action:** Start **M6** — Incremental Publishing. Implement `publish_worker.py` (copy staging → published S3 prefix, write PUBLISHED# DDB record) and `search_index_worker.py` (rebuild Lunr.js index + TOC JSON).
+**Next action:** Start **M7** — Public Astro site. Build `apps/public-site/` with: home page (TOC from S3 toc.json), per-topic chapter pages, Lunr.js search, text highlight + comment widget calling `/public/highlights` and `/public/comments`.
 
-### Immediate next steps — M6 Incremental Publishing:
+### Immediate next steps — M7 Public Website:
 
-1. [ ] **M6-S1:** `publish_worker.py` — copy `review/final_draft.md` → `published/topics/<id>/v<NNN>/`, write `TOPIC#<id> | PUBLISHED#v<NNN>` DDB record, update `META` with `current_published_version` and `published_at`
-2. [ ] **M6-S2:** `search_index_worker.py` — read all active published topics from DDB, build Lunr.js-compatible JSON index, write `site/current/search/index.json` + `site/current/toc.json` to S3
-3. [ ] **M6-S3:** Wire both workers into SFN ASL after the WaitForApproval → Approved path
-4. [ ] **M6-S4:** Deploy and test end-to-end: trigger → approve → check published S3 prefix + index rebuilt
+1. [ ] **M7-S1:** Astro project scaffold — `astro.config.mjs`, Tailwind (or minimal CSS), layout component
+2. [ ] **M7-S2:** Home page — fetch `toc.json` from S3 at build time, render topic cards with version + release notes
+3. [ ] **M7-S3:** Per-topic chapter page — fetch `content.md` from S3, render Markdown with `@astrojs/mdx` or `marked`
+4. [ ] **M7-S4:** Lunr.js search — load `search/index.json`, build index client-side, render results dropdown
+5. [ ] **M7-S5:** Highlight + comment widget (JS) — capture selected text range, POST to `/public/highlights` and `/public/comments`
+6. [ ] **M7-S6:** `services/api/public.py` already scaffolded — verify POST /public/comments + /public/highlights + GET /public/releases/latest handlers are complete
+
+### M6 Incremental Publishing:
+
+1. [x] **M6-S1:** `publish_worker.py` — content.md + manifest.json → `published/topics/<id>/v<NNN>/`, PUBLISHED# DDB record, META update
+2. [x] **M6-S2:** `search_index_worker.py` — Lunr.js documents list → `site/current/search/index.json`, toc.json, sitemap.json
+3. [x] **M6-S3:** SFN ASL already had PublishTopic → RebuildIndexes wired from M1
+4. [ ] **M6-S4:** Deploy and test end-to-end: trigger → approve → verify published S3 prefix + index rebuilt
 
 ---
 
@@ -50,7 +59,7 @@
 | 3 | Scheduling + Manual Trigger | ✅ Complete | 2026-04-10 |
 | 4 | Multi-Agent Pipeline | ✅ Complete | 2026-04-10 |
 | 5 | Admin Review + Approval | ✅ Complete | 2026-04-11 |
-| 6 | Incremental Publishing | ⏳ Pending | — |
+| 6 | Incremental Publishing | ✅ Complete | 2026-04-11 |
 | 7 | Public Website | ⏳ Pending | — |
 | 8 | Run History + Feedback UI | ⏳ Pending | — |
 | 9 | Weekly Digest | ⏳ Pending | — |
