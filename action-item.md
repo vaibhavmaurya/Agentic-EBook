@@ -7,19 +7,16 @@
 
 ## ▶ RESUME HERE
 
-**Session ended:** 2026-04-10
-**Last completed:** Prompt config system added (`prompts.yaml` + `get_prompt()` in config.py) — all 6 agents now load prompts from YAML using `${variable}` templates with no code changes required. M5 backend started: `services/api/reviews.py` implemented (GET review, POST approve/reject with SFN SendTaskSuccess/Failure, GET /admin/reviews list). Review routes wired into `local_dev_server.py`. Route logic verified without AWS credentials.
-**Next action:** Continue **M5** — Admin UI review pages. Build the review queue page and draft review page in `apps/admin-site/`.
+**Session ended:** 2026-04-11
+**Last completed:** M5 COMPLETE (backend + UI) — `reviews.py` updated to inline S3 artifact content (browser can't access private S3). `approval_worker.py` writes DRAFT# DDB record and stores topic title in REVIEW record. Admin UI: `ReviewQueuePage` (pending list, timeout countdown, 30s poll, urgency styling), `ReviewDetailPage` (content viewer, diff panel, scorecard bars, approve/reject form). Nav badge shows pending count. `App.tsx` routes wired. `npm run build` passes — 0 errors.
+**Next action:** Start **M6** — Incremental Publishing. Implement `publish_worker.py` (copy staging → published S3 prefix, write PUBLISHED# DDB record) and `search_index_worker.py` (rebuild Lunr.js index + TOC JSON).
 
-### Immediate next steps — M5 Admin Review + Approval (backend done):
+### Immediate next steps — M6 Incremental Publishing:
 
-1. [x] **M5-S1:** `services/api/reviews.py` — GET review, POST approve/reject, GET /admin/reviews list
-2. [x] **M5-S2:** SFN SendTaskSuccess/Failure called from POST handler; task token read from DDB REVIEW record
-3. [ ] **M5-S3:** `approval_worker.py` — also write a `DRAFT#<run_id>` DDB record with content URIs for the admin run history view
-4. [ ] **M5-S4:** Admin UI — review queue page (`/admin/reviews`) — list PENDING_REVIEW items with topic title, timeout countdown, link to review page
-5. [ ] **M5-S5:** Admin UI — draft review page (`/admin/topics/{id}/review/{runId}`) — content viewer, diff/release notes panel, scorecard, approve/reject form with notes
-6. [ ] **M5-S6:** Deploy `reviews.py` Lambda + updated `approval_worker` to AWS; test end-to-end approve flow
-7. [ ] **M5-S7:** Test rejection path and timeout (wait state expiry) handling
+1. [ ] **M6-S1:** `publish_worker.py` — copy `review/final_draft.md` → `published/topics/<id>/v<NNN>/`, write `TOPIC#<id> | PUBLISHED#v<NNN>` DDB record, update `META` with `current_published_version` and `published_at`
+2. [ ] **M6-S2:** `search_index_worker.py` — read all active published topics from DDB, build Lunr.js-compatible JSON index, write `site/current/search/index.json` + `site/current/toc.json` to S3
+3. [ ] **M6-S3:** Wire both workers into SFN ASL after the WaitForApproval → Approved path
+4. [ ] **M6-S4:** Deploy and test end-to-end: trigger → approve → check published S3 prefix + index rebuilt
 
 ---
 
@@ -52,7 +49,7 @@
 | 2 | Topic CRUD API + Admin UI | ✅ Complete | 2026-04-10 |
 | 3 | Scheduling + Manual Trigger | ✅ Complete | 2026-04-10 |
 | 4 | Multi-Agent Pipeline | ✅ Complete | 2026-04-10 |
-| 5 | Admin Review + Approval | ⏳ Pending | — |
+| 5 | Admin Review + Approval | ✅ Complete | 2026-04-11 |
 | 6 | Incremental Publishing | ⏳ Pending | — |
 | 7 | Public Website | ⏳ Pending | — |
 | 8 | Run History + Feedback UI | ⏳ Pending | — |

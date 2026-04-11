@@ -1,0 +1,90 @@
+.page {
+  padding: 32px;
+  max-width: 860px;
+}
+
+.center {
+  display: flex;
+  justify-content: center;
+  padding: 80px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+}
+
+.cardMain {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.topicTitle {
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.runId {
+  font-size: 12px;
+  color: var(--color-muted);
+  font-family: monospace;
+}
+
+.cardMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.timeout {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.urgent {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+.expired {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.empty {
+  padding: 48px 32px;
+  text-align: center;
+  color: var(--color-muted);
+}

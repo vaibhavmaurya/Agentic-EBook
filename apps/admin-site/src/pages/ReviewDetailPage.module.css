@@ -1,0 +1,231 @@
+.page {
+  padding: 32px;
+  max-width: 1280px;
+}
+
+.center {
+  display: flex;
+  justify-content: center;
+  padding: 80px;
+}
+
+/* ── Header ────────────────────────────────────────────────────────────────── */
+
+.back {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  color: var(--color-muted);
+  cursor: pointer;
+  margin-bottom: 8px;
+  display: inline-block;
+}
+.back:hover { color: var(--color-primary); }
+
+.header {
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.headerMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.metaItem {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+/* ── Decided banner ────────────────────────────────────────────────────────── */
+
+.decidedBanner {
+  padding: 14px 20px;
+  font-size: 14px;
+  margin-bottom: 20px;
+  color: var(--color-text);
+}
+
+/* ── Two-column layout ─────────────────────────────────────────────────────── */
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.contentCol { min-width: 0; }
+.sideCol { display: flex; flex-direction: column; gap: 16px; }
+
+/* ── Content viewer ────────────────────────────────────────────────────────── */
+
+.contentCard {
+  overflow: hidden;
+}
+
+.contentHeader {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.contentMeta {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.tocList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tocItem {
+  font-size: 12px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 2px 8px;
+  color: var(--color-muted);
+}
+
+.contentPre {
+  margin: 0;
+  padding: 20px;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 75vh;
+  overflow-y: auto;
+  color: var(--color-text);
+}
+
+/* ── Sidebar panels ────────────────────────────────────────────────────────── */
+
+.panel {
+  padding: 20px;
+}
+
+.panelTitle {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  color: var(--color-text);
+}
+
+/* ── Scorecard ─────────────────────────────────────────────────────────────── */
+
+.scoreList { display: flex; flex-direction: column; gap: 10px; }
+
+.scoreRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.scoreLabel {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.scoreTrack {
+  height: 6px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.scoreFill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+.scorePct {
+  font-size: 12px;
+  font-weight: 600;
+  width: 32px;
+  text-align: right;
+  color: var(--color-text);
+}
+
+/* ── Diff panel ────────────────────────────────────────────────────────────── */
+
+.releaseNotes {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text);
+  margin-bottom: 12px;
+}
+
+.diffSections {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.diffGroup {
+  font-size: 12px;
+}
+
+.diffGroup ul {
+  margin: 4px 0 0 16px;
+  padding: 0;
+  color: var(--color-text);
+}
+
+.diffAdded   { font-weight: 600; color: var(--color-success); }
+.diffRemoved { font-weight: 600; color: var(--color-danger); }
+.diffChanged { font-weight: 600; color: var(--color-warning); }
+
+.changesSummary {
+  font-size: 12px;
+  color: var(--color-muted);
+  line-height: 1.5;
+  border-top: 1px solid var(--color-border);
+  padding-top: 10px;
+  margin-top: 4px;
+}
+
+/* ── Decision form ─────────────────────────────────────────────────────────── */
+
+.decisionPanel { border: 2px solid var(--color-primary); }
+
+.notesArea {
+  margin-bottom: 12px;
+  resize: vertical;
+}
+
+.decisionButtons {
+  display: flex;
+  gap: 10px;
+}
+
+.decisionButtons button {
+  flex: 1;
+}
+
+.approveBtn {
+  background: var(--color-success);
+}
+.approveBtn:hover { filter: brightness(0.9); }

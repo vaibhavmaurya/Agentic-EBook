@@ -1,10 +1,18 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../store/authStore'
+import { reviewsApi } from '../api/reviews'
 import styles from './Layout.module.css'
 
 export default function Layout() {
   const { email, logout } = useAuthStore()
   const navigate = useNavigate()
+
+  const { data: pending = [] } = useQuery({
+    queryKey: ['reviews'],
+    queryFn: reviewsApi.list,
+    refetchInterval: 60_000,
+  })
 
   const handleLogout = async () => {
     await logout()
@@ -28,6 +36,19 @@ export default function Layout() {
               }
             >
               Topics
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/reviews"
+              className={({ isActive }) =>
+                `${styles.navLink} ${isActive ? styles.active : ''}`
+              }
+            >
+              Reviews
+              {pending.length > 0 && (
+                <span className={styles.badge}>{pending.length}</span>
+              )}
             </NavLink>
           </li>
         </ul>

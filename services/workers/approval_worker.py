@@ -63,6 +63,8 @@ def notify_admin(topic_id: str, run_id: str, task_token: str,
 
     timeout_at = (datetime.now(timezone.utc) + timedelta(hours=_REVIEW_TIMEOUT_HOURS)).isoformat()
 
+    now = datetime.now(timezone.utc).isoformat()
+
     # Persist the REVIEW record — admin approval API reads this to retrieve task_token
     table = get_table()
     table.put_item(Item={
@@ -72,12 +74,27 @@ def notify_admin(topic_id: str, run_id: str, task_token: str,
         "REVIEW_STATUS": "REVIEW_STATUS#PENDING_REVIEW",
         "topic_id": topic_id,
         "run_id": run_id,
+        "title": title,
         "task_token": task_token,
         "review_status": "PENDING_REVIEW",
         "review_artifact_uri": review_artifact_uri or "",
         "diff_summary_uri": diff_summary_uri or "",
         "timeout_at": timeout_at,
-        "UPDATED_AT": datetime.now(timezone.utc).isoformat(),
+        "UPDATED_AT": now,
+    })
+
+    # Write DRAFT# record — used by run history view
+    table.put_item(Item={
+        "PK": f"TOPIC#{topic_id}",
+        "SK": f"DRAFT#{run_id}",
+        "ENTITY_TYPE": "DRAFT",
+        "topic_id": topic_id,
+        "run_id": run_id,
+        "title": title,
+        "review_artifact_uri": review_artifact_uri or "",
+        "diff_summary_uri": diff_summary_uri or "",
+        "draft_status": "PENDING_REVIEW",
+        "UPDATED_AT": now,
     })
 
     _send_review_email(topic_id, run_id, title)

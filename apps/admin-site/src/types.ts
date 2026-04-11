@@ -56,3 +56,62 @@ export interface ApiError {
   error: string
   message: string
 }
+
+// ── Review types (M5) ─────────────────────────────────────────────────────────
+
+export type ReviewStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'TIMED_OUT'
+
+export interface Scorecard {
+  instruction_adherence: number
+  style_compliance: number
+  factual_confidence: number
+  clarity: number
+  overall: number
+}
+
+export interface DiffSummary {
+  is_first_version: boolean
+  sections_added: string[]
+  sections_removed: string[]
+  sections_changed: string[]
+  release_notes: string
+}
+
+export interface ReviewQueueItem {
+  topic_id: string
+  run_id: string
+  title: string
+  review_status: ReviewStatus
+  timeout_at: string
+  updated_at: string
+}
+
+export interface ReviewDetail {
+  topic_id: string
+  run_id: string
+  title: string
+  review_status: ReviewStatus
+  timeout_at: string
+  reviewer: string | null
+  notes: string | null
+  approved_at: string | null
+  rejected_at: string | null
+  // inlined draft content
+  content: string
+  sections: string[]
+  word_count: number
+  scorecard: Scorecard
+  changes_summary: string
+  diff: DiffSummary
+  run: {
+    status: RunStatus | null
+    trigger_source: string | null
+    started_at: string | null
+    cost_usd_total: number | null
+  }
+}
+
+export interface ReviewDecisionPayload {
+  decision: 'approve' | 'reject'
+  notes: string
+}

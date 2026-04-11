@@ -101,16 +101,26 @@ def _list_pending_reviews() -> list[dict]:
 
 # ── Route handlers ────────────────────────────────────────────────────────────
 
+def _fetch_s3_json(uri: str) -> dict | None:
+    """Fetch a JSON object from an s3:// URI. Returns None on any error."""
+    if not uri or not uri.startswith("s3://"):
+        return None
+    try:
+        s3 = boto3.client("s3", region_name=_AWS_REGION)
+        rest = uri[5:]
+        bucket, key = rest.split("/", 1)
+        resp = s3.get_object(Bucket=bucket, Key=key)
+        return json.loads(resp["Body"].read())
+    except Exception:
+        return None
+
+
 def _handle_get_review(topic_id: str, run_id: str) -> dict:
     """
     GET /admin/topics/{topicId}/review/{runId}
 
-    Returns everything the admin UI needs to render the review page:
-    - draft_artifact_uri  → structured JSON (content, sections, scorecard, diff)
-    - preview_uri         → plain Markdown for quick reading
-    - diff_summary_uri    → diff + release notes
-    - run metadata        → stage trace summaries, cost
-    - review status       → PENDING_REVIEW | APPROVED | REJECTED | TIMED_OUT
+    Returns everything the admin UI needs to render the review page.
+    S3 artifact content is inlined — the browser cannot access private S3 directly.
     """
     review = _get_review(topic_id, run_id)
     if not review:
@@ -119,17 +129,34 @@ def _handle_get_review(topic_id: str, run_id: str) -> dict:
 
     run = _get_run(topic_id, run_id)
 
+    # Inline the review artifact (content, sections, scorecard, diff_summary)
+    artifact = _fetch_s3_json(review.get("review_artifact_uri", "")) or {}
+    diff = _fetch_s3_json(review.get("diff_summary_uri", "")) or {}
+
     return _ok({
         "topic_id": topic_id,
         "run_id": run_id,
+        "title": artifact.get("title", ""),
         "review_status": review.get("review_status"),
-        "review_artifact_uri": review.get("review_artifact_uri"),
-        "diff_summary_uri": review.get("diff_summary_uri"),
         "timeout_at": review.get("timeout_at"),
         "reviewer": review.get("reviewer"),
         "notes": review.get("notes"),
         "approved_at": review.get("approved_at"),
         "rejected_at": review.get("rejected_at"),
+        # Inlined draft content
+        "content": artifact.get("content", ""),
+        "sections": artifact.get("sections", []),
+        "word_count": artifact.get("word_count", 0),
+        "scorecard": artifact.get("scorecard", {}),
+        "changes_summary": artifact.get("changes_summary", ""),
+        # Inlined diff / release notes
+        "diff": {
+            "is_first_version": diff.get("is_first_version", True),
+            "sections_added": diff.get("sections_added", []),
+            "sections_removed": diff.get("sections_removed", []),
+            "sections_changed": diff.get("sections_changed", []),
+            "release_notes": diff.get("release_notes", ""),
+        },
         "run": {
             "status": run.get("status") if run else None,
             "trigger_source": run.get("trigger_source") if run else None,
@@ -146,8 +173,8 @@ def _handle_list_reviews() -> dict:
         {
             "topic_id": item.get("topic_id"),
             "run_id": item.get("run_id"),
+            "title": item.get("title", ""),
             "review_status": item.get("review_status"),
-            "review_artifact_uri": item.get("review_artifact_uri"),
             "timeout_at": item.get("timeout_at"),
             "updated_at": item.get("UPDATED_AT"),
         }
