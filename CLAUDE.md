@@ -205,6 +205,6 @@ Requires: `GITHUB_TOKEN` env var in shell profile (not `.env.local`).
 | 7 | Public Website | ✅ Complete |
 | 8 | Run History + Feedback UI | ✅ Complete |
 | 9 | Weekly Digest | ✅ Complete |
-| 10 | Jupyter Notebook Test Harness | ⏳ Pending |
+| 10 | Jupyter Notebook Test Harness | ✅ Complete |
 
 **Detailed task checklists and RESUME point:** see `action-item.md`.

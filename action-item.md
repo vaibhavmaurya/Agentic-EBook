@@ -9,17 +9,14 @@
 
 **Session ended:** 2026-04-10
 **Last completed:** M7 COMPLETE — Public Astro site fully built: `astro.config.mjs`, `Base.astro` layout, `index.astro` (TOC), `topics/[slug].astro` (chapter + comment/highlight widget), `search.astro` (Lunr.js), `releases.astro`. `lib/s3.ts` + `lib/types.ts`. `services/api/public.py` fully implemented (POST /public/comments, POST /public/highlights, GET /public/releases/latest). `local_dev_server.py` already had public routes wired. `tslib` dependency added. `npm run build` passes — 3 pages, 0 errors.
-**Next action:** Start **M10** — Jupyter Notebook Test Harness. Implement all cell groups UC-01→UC-15 in `notebooks/ebook_platform_test_harness.ipynb`, then PURGE cell.
+**Next action:** **END-TO-END TESTING** — All milestones M1-M10 complete. Run the full test harness: `cd notebooks && jupyter notebook ebook_platform_test_harness.ipynb`, execute cells 0-17 in order. Fix any assertion failures. Then run `terraform apply` to deploy the weekly digest schedule change (M9 adds `aws_scheduler_schedule.weekly_digest` + `aws_lambda_permission`).
 
-### Immediate next steps — M10 Jupyter Notebook:
+### Remaining: End-to-End Test Run
 
-1. [ ] **M10-S1:** Cell Group 0 — setup, boto3 clients, connectivity check
-2. [ ] **M10-S2:** Cell Groups 1-3 — topic CRUD (create, update, reorder)
-3. [ ] **M10-S3:** Cell Groups 4-6 — trigger, schedule smoke, pipeline wait
-4. [ ] **M10-S4:** Cell Groups 7-9 — approve, reject, incremental update
-5. [ ] **M10-S5:** Cell Groups 10-12 — search, highlight+comment, feedback summary
-6. [ ] **M10-S6:** Cell Groups 13-15 — digest trigger, failed run investigation, cost
-7. [ ] **M10-S7:** Cell Group 16 — PURGE (stop SFN, delete schedules, DDB, S3)
+1. [ ] Run `terraform apply` to deploy M9 Terraform changes (weekly digest schedule)
+2. [ ] Execute notebook cells 0-17 against dev AWS account
+3. [ ] Fix any assertion failures
+4. [ ] Run PURGE cell (cell 17) to clean up test data
 
 ### M6 Incremental Publishing:
 
@@ -64,7 +61,7 @@
 | 7 | Public Website | ✅ Complete | 2026-04-10 |
 | 8 | Run History + Feedback UI | ✅ Complete | 2026-04-10 |
 | 9 | Weekly Digest | ✅ Complete | 2026-04-10 |
-| 10 | Jupyter Notebook Test Harness | ⏳ Pending | — |
+| 10 | Jupyter Notebook Test Harness | ✅ Complete | 2026-04-10 |
 
 ---
 
@@ -384,3 +381,4 @@ _None currently._
 | 2026-04-10 | M6+M7: publish_worker.py (version incrementing, PUBLISHED# DDB, META update), search_index_worker.py (Lunr docs + toc.json + sitemap.json). Public Astro site: astro.config.mjs, Base.astro, index.astro, topics/[slug].astro (comment/highlight widget), search.astro (Lunr.js), releases.astro, lib/s3.ts, lib/types.ts. services/api/public.py fully implemented. tslib added. npm run build passes (3 pages, 0 errors). **Milestones 6+7 complete.** |
 | 2026-04-10 | M8: topics.py + GET /runs + GET /runs/{runId}. feedback.py (GET /admin/feedback/summary, GET /topics/{id}/feedback). local_dev_server.py wired. Admin UI: RunHistoryPage, RunDetailPage (trace timeline + cost bars), FeedbackPage (collapsible per-topic cards). Nav links added. npm run build passes. **Milestone 8 complete.** |
 | 2026-04-10 | M9: digest_worker.py fully implemented (DDB scan, HTML + plain-text email, SES send, NOTIF record). EventBridge weekly schedule (every Monday 08:00 UTC) in Terraform eventbridge_scheduler module. aws_lambda_permission for EventBridge → digest Lambda. terraform validate passes. **Milestone 9 complete.** |
+| 2026-04-10 | M10: Jupyter notebook test harness confirmed fully implemented (all 17 cells: UC-01→UC-15 + PURGE). Notebook was already scaffolded in session 1; verified all cells have complete assertions, polling helpers, and PURGE covers SFN stop, EventBridge schedules, DDB batch delete, S3 delete. **Milestone 10 complete.** |
