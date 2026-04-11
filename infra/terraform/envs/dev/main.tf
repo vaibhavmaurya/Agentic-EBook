@@ -50,6 +50,10 @@ locals {
   # Pre-computed SFN ARN so IAM module can reference it without depending on
   # the step_functions module output (which would create a circular dependency).
   state_machine_arn = "arn:aws:states:${var.aws_region}:${var.aws_account_id}:stateMachine:${local.state_machine_name}"
+
+  # Pre-computed digest Lambda ARN so IAM can grant Scheduler invoke permission
+  # without creating a circular IAM → Lambda → IAM dependency.
+  digest_lambda_arn = "arn:aws:lambda:${var.aws_region}:${var.aws_account_id}:function:${local.name_prefix}-digest"
 }
 
 ###############################################################################
@@ -97,6 +101,7 @@ module "iam" {
   openai_secret_arn    = module.secrets_manager.secret_arn
   state_machine_arn    = local.state_machine_arn
   ses_sender_email     = var.ses_sender_email
+  digest_lambda_arn    = local.digest_lambda_arn
 }
 
 ###############################################################################
@@ -176,10 +181,10 @@ module "eventbridge_scheduler" {
   env     = var.env
   project = var.project
 
-  scheduler_role_arn     = module.iam.scheduler_role_arn
-  state_machine_arn      = local.state_machine_arn
-  digest_lambda_arn      = module.lambda_functions.digest_worker_arn
-  digest_lambda_role_arn = module.iam.digest_lambda_role_arn
+  scheduler_role_arn      = module.iam.scheduler_role_arn
+  state_machine_arn       = local.state_machine_arn
+  digest_lambda_arn       = local.digest_lambda_arn
+  digest_scheduler_role_arn = module.iam.digest_scheduler_role_arn
 }
 
 ###############################################################################

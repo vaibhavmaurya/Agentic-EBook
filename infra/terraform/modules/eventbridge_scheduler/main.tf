@@ -25,7 +25,7 @@ resource "aws_scheduler_schedule" "weekly_digest" {
 
   target {
     arn      = var.digest_lambda_arn
-    role_arn = var.digest_lambda_role_arn
+    role_arn = var.digest_scheduler_role_arn
 
     input = jsonencode({
       source = "eventbridge_scheduler"

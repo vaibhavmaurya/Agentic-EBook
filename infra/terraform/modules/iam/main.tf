@@ -35,6 +35,7 @@ data "aws_iam_policy_document" "api_lambda" {
       "dynamodb:DeleteItem",
       "dynamodb:Query",
       "dynamodb:BatchWriteItem",
+      "dynamodb:Scan",
     ]
     resources = [
       var.dynamodb_table_arn,
@@ -191,6 +192,7 @@ data "aws_iam_policy_document" "digest_lambda" {
       "dynamodb:GetItem",
       "dynamodb:Query",
       "dynamodb:PutItem",
+      "dynamodb:Scan",
     ]
     resources = [
       var.dynamodb_table_arn,
@@ -201,7 +203,7 @@ data "aws_iam_policy_document" "digest_lambda" {
   statement {
     sid    = "SES"
     effect = "Allow"
-    actions = ["ses:SendEmail", "ses:SendRawEmail"]
+    actions = ["ses:SendEmail", "ses:SendRawEmail", "sesv2:SendEmail"]
     resources = ["arn:aws:ses:${var.aws_region}:${var.aws_account_id}:identity/${var.ses_sender_email}"]
   }
 
@@ -221,6 +223,42 @@ resource "aws_iam_role_policy" "digest_lambda" {
   name   = "digest-lambda-policy"
   role   = aws_iam_role.digest_lambda.id
   policy = data.aws_iam_policy_document.digest_lambda.json
+}
+
+# ── EventBridge Scheduler role (digest Lambda invoke) ────────────────────────
+# Allows EventBridge Scheduler to invoke the digest Lambda directly.
+
+resource "aws_iam_role" "digest_scheduler" {
+  name = "${local.name_prefix}-digest-scheduler"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Action    = "sts:AssumeRole"
+      Principal = { Service = "scheduler.amazonaws.com" }
+      Condition = {
+        StringEquals = {
+          "aws:SourceAccount" = var.aws_account_id
+        }
+      }
+    }]
+  })
+}
+
+data "aws_iam_policy_document" "digest_scheduler" {
+  statement {
+    sid     = "InvokeDigestLambda"
+    effect  = "Allow"
+    actions = ["lambda:InvokeFunction"]
+    resources = [var.digest_lambda_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "digest_scheduler" {
+  name   = "digest-scheduler-policy"
+  role   = aws_iam_role.digest_scheduler.id
+  policy = data.aws_iam_policy_document.digest_scheduler.json
 }
 
 # ── Step Functions execution role ────────────────────────────────────────────
