@@ -115,3 +115,74 @@ export interface ReviewDecisionPayload {
   decision: 'approve' | 'reject'
   notes: string
 }
+
+// ── Run history types (M8) ────────────────────────────────────────────────────
+
+export interface RunSummary {
+  run_id: string
+  status: RunStatus
+  trigger_source: string
+  triggered_by: string
+  execution_arn: string
+  started_at: string
+  completed_at: string | null
+  cost_usd: string
+}
+
+export interface TraceEvent {
+  sk: string
+  event_type: string
+  stage: string | null
+  agent_name: string | null
+  model_name: string | null
+  token_usage: Record<string, number> | null
+  cost_usd: string
+  error_message: string | null
+  error_classification: string | null
+  timestamp: string | null
+}
+
+export interface RunDetail {
+  run: RunSummary
+  trace_events: TraceEvent[]
+  stage_costs: Record<string, number>
+}
+
+// ── Feedback types (M8) ───────────────────────────────────────────────────────
+
+export type FeedbackType = 'COMMENT' | 'HIGHLIGHT'
+export type ModerationStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+
+export interface FeedbackItem {
+  feedback_id: string
+  feedback_type: FeedbackType
+  topic_id: string
+  section_id: string | null
+  comment_text: string | null
+  selected_text: string | null
+  highlight_id: string | null
+  moderation_status: ModerationStatus
+  created_at: string
+}
+
+export interface TopicFeedbackSummary {
+  topic_id: string
+  comment_count: number
+  highlight_count: number
+  pending_count: number
+  recent: Array<{
+    feedback_id: string
+    feedback_type: FeedbackType
+    section_id: string | null
+    comment_text: string
+    selected_text: string
+    moderation_status: ModerationStatus
+    created_at: string
+  }>
+}
+
+export interface FeedbackSummaryResponse {
+  topics: TopicFeedbackSummary[]
+  topic_count: number
+  total_feedback: number
+}

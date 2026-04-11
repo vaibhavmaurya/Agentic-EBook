@@ -51,6 +51,16 @@ export default function Layout() {
               )}
             </NavLink>
           </li>
+          <li>
+            <NavLink
+              to="/feedback"
+              className={({ isActive }) =>
+                `${styles.navLink} ${isActive ? styles.active : ''}`
+              }
+            >
+              Feedback
+            </NavLink>
+          </li>
         </ul>
 
         <div className={styles.user}>

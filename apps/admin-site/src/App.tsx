@@ -6,6 +6,9 @@ import TopicListPage from './pages/TopicListPage'
 import TopicFormPage from './pages/TopicFormPage'
 import ReviewQueuePage from './pages/ReviewQueuePage'
 import ReviewDetailPage from './pages/ReviewDetailPage'
+import RunHistoryPage from './pages/RunHistoryPage'
+import RunDetailPage from './pages/RunDetailPage'
+import FeedbackPage from './pages/FeedbackPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -31,6 +34,9 @@ export default function App() {
         <Route path="topics/:topicId/edit" element={<TopicFormPage />} />
         <Route path="reviews" element={<ReviewQueuePage />} />
         <Route path="topics/:topicId/review/:runId" element={<ReviewDetailPage />} />
+        <Route path="topics/:topicId/runs" element={<RunHistoryPage />} />
+        <Route path="topics/:topicId/runs/:runId" element={<RunDetailPage />} />
+        <Route path="feedback" element={<FeedbackPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

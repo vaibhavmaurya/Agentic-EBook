@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   DndContext,
@@ -78,6 +78,13 @@ function TopicRow({
 
       <div className={styles.rowActions}>
         <button className="btn-secondary" onClick={onEdit}>Edit</button>
+        <Link
+          to={`/topics/${topic.topic_id}/runs`}
+          className="btn-secondary"
+          style={{ textDecoration: 'none', display: 'inline-block' }}
+        >
+          Runs
+        </Link>
         <button
           className="btn-primary"
           onClick={onTrigger}

@@ -9,6 +9,8 @@ Routes handled (API Gateway HTTP API, payload format 2.0):
   DELETE /admin/topics/{topicId}
   PUT    /admin/topics/reorder
   POST   /admin/topics/{topicId}/trigger
+  GET    /admin/topics/{topicId}/runs
+  GET    /admin/topics/{topicId}/runs/{runId}
 """
 from __future__ import annotations
 
@@ -454,17 +456,105 @@ def trigger_run(event: dict) -> dict:
     return _ok({"run_id": run_id, "execution_arn": execution_arn}, status=202)
 
 
+# ── GET /admin/topics/{topicId}/runs ─────────────────────────────────────────
+
+def list_runs(event: dict) -> dict:
+    topic_id = event["pathParameters"]["topicId"]
+    resp = _table().query(
+        KeyConditionExpression=Key("PK").eq(f"TOPIC#{topic_id}") & Key("SK").begins_with("RUN#"),
+        ScanIndexForward=False,
+    )
+    items = resp.get("Items", [])
+    runs = [
+        {
+            "run_id": item.get("run_id"),
+            "status": item.get("status"),
+            "trigger_source": item.get("trigger_source"),
+            "triggered_by": item.get("triggered_by"),
+            "execution_arn": item.get("execution_arn"),
+            "started_at": item.get("started_at"),
+            "completed_at": item.get("completed_at"),
+            "cost_usd": str(item.get("cost_usd", "0")),
+        }
+        for item in items
+    ]
+    return _ok({"runs": runs, "count": len(runs)})
+
+
+# ── GET /admin/topics/{topicId}/runs/{runId} ──────────────────────────────────
+
+def get_run(event: dict) -> dict:
+    topic_id = event["pathParameters"]["topicId"]
+    run_id = event["pathParameters"]["runId"]
+
+    # Fetch the RUN record
+    run_item = _table().get_item(
+        Key={"PK": f"TOPIC#{topic_id}", "SK": f"RUN#{run_id}"}
+    ).get("Item")
+    if not run_item:
+        return _err("NOT_FOUND", f"Run {run_id} not found.", 404)
+
+    # Fetch all trace events for this run
+    events_resp = _table().query(
+        KeyConditionExpression=Key("PK").eq(f"RUN#{run_id}") & Key("SK").begins_with("EVENT#"),
+        ScanIndexForward=True,
+    )
+    trace_events = [
+        {
+            "sk": ev.get("SK"),
+            "event_type": ev.get("event_type"),
+            "stage": ev.get("stage"),
+            "agent_name": ev.get("agent_name"),
+            "model_name": ev.get("model_name"),
+            "token_usage": ev.get("token_usage"),
+            "cost_usd": str(ev.get("cost_usd", "0")),
+            "error_message": ev.get("error_message"),
+            "error_classification": ev.get("error_classification"),
+            "timestamp": ev.get("timestamp"),
+        }
+        for ev in events_resp.get("Items", [])
+    ]
+
+    # Compute per-stage cost totals from trace events
+    stage_costs: dict[str, float] = {}
+    for ev in trace_events:
+        stage = ev.get("stage") or ""
+        try:
+            cost = float(ev.get("cost_usd") or 0)
+        except (TypeError, ValueError):
+            cost = 0.0
+        stage_costs[stage] = stage_costs.get(stage, 0.0) + cost
+
+    return _ok({
+        "run": {
+            "run_id": run_item.get("run_id"),
+            "topic_id": run_item.get("topic_id", topic_id),
+            "status": run_item.get("status"),
+            "trigger_source": run_item.get("trigger_source"),
+            "triggered_by": run_item.get("triggered_by"),
+            "execution_arn": run_item.get("execution_arn"),
+            "started_at": run_item.get("started_at"),
+            "completed_at": run_item.get("completed_at"),
+            "cost_usd": str(run_item.get("cost_usd", "0")),
+        },
+        "trace_events": trace_events,
+        "stage_costs": stage_costs,
+    })
+
+
 # ── Lambda entry point ────────────────────────────────────────────────────────
 
 # Route table: (method, path_pattern) → handler
 _ROUTES: list[tuple[str, str, Any]] = [
-    ("GET",    "/admin/topics",                    list_topics),
-    ("POST",   "/admin/topics",                    create_topic),
-    ("PUT",    "/admin/topics/reorder",            reorder_topics),
-    ("GET",    "/admin/topics/{topicId}",          get_topic),
-    ("PUT",    "/admin/topics/{topicId}",          update_topic),
-    ("DELETE", "/admin/topics/{topicId}",          delete_topic),
-    ("POST",   "/admin/topics/{topicId}/trigger",  trigger_run),
+    ("GET",    "/admin/topics",                              list_topics),
+    ("POST",   "/admin/topics",                              create_topic),
+    ("PUT",    "/admin/topics/reorder",                      reorder_topics),
+    ("GET",    "/admin/topics/{topicId}",                    get_topic),
+    ("PUT",    "/admin/topics/{topicId}",                    update_topic),
+    ("DELETE", "/admin/topics/{topicId}",                    delete_topic),
+    ("POST",   "/admin/topics/{topicId}/trigger",            trigger_run),
+    ("GET",    "/admin/topics/{topicId}/runs",               list_runs),
+    ("GET",    "/admin/topics/{topicId}/runs/{runId}",       get_run),
 ]
 
 
