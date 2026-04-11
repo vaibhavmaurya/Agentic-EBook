@@ -9,6 +9,7 @@ packages/shared_types/
 *.pem
 *.key
 secrets/
+.claude/settings.local.json
 
 # =============================================================================
 # Python
