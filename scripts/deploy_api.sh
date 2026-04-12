@@ -32,15 +32,20 @@ pip install --quiet --target "$BUILD_DIR" \
     --python-version 3.12 \
     --only-binary=:all: \
     --implementation cp \
-    pydantic python-dotenv
+    pydantic python-dotenv pyyaml
 
 # Copy shared_types package
 cp -r "$REPO_ROOT/packages/shared-types" "$BUILD_DIR/shared_types"
 
 # Copy all API handler modules
-for f in topics.py reviews.py public.py feedback.py; do
+for f in topics.py reviews.py public.py feedback.py config_api.py; do
     cp "$REPO_ROOT/services/api/$f" "$BUILD_DIR/$f"
 done
+
+# Bundle default LLM config YAMLs so config_api.py has a local fallback
+mkdir -p "$BUILD_DIR/openai_runtime"
+cp "$REPO_ROOT/services/openai_runtime/model_config.yaml" "$BUILD_DIR/openai_runtime/model_config.yaml"
+cp "$REPO_ROOT/services/openai_runtime/prompts.yaml" "$BUILD_DIR/openai_runtime/prompts.yaml"
 
 # Lambda entry point — Terraform configured handler = "handler.lambda_handler"
 cat > "$BUILD_DIR/handler.py" << 'PYEOF'
@@ -52,11 +57,26 @@ from topics import lambda_handler as topics_handler
 from reviews import lambda_handler as reviews_handler
 from public import lambda_handler as public_handler
 from feedback import lambda_handler as feedback_handler
+from config_api import lambda_handler as config_handler
+
+
+_CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key",
+}
 
 
 def lambda_handler(event: dict, context: Any) -> dict:
+    method = event.get("requestContext", {}).get("http", {}).get("method", "").upper()
     path = event.get("rawPath", "")
 
+    # Handle CORS preflight — return 200 with CORS headers immediately
+    if method == "OPTIONS":
+        return {"statusCode": 200, "headers": _CORS_HEADERS, "body": ""}
+
+    if path.startswith("/admin/config/"):
+        return config_handler(event, context)
     if "/review" in path:
         return reviews_handler(event, context)
     if path.startswith("/admin/feedback") or path.endswith("/feedback"):

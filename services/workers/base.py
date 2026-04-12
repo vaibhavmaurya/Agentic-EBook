@@ -45,17 +45,25 @@ def get_s3():
 
 def extract_execution_input(event: dict) -> dict:
     """
-    Extract the original SFN start_execution input from the context object.
+    Extract the original SFN start_execution input from the event.
 
-    When a worker Lambda is invoked by SFN with "Payload.$": "$$", the event
-    is the full context object. The original input is nested under
-    event["Execution"]["Input"].
+    The state machine passes the full accumulated state to each Lambda using
+    "Payload.$": "$".  The original start_execution input fields (topic_id,
+    run_id) are at the top level of the state alongside all intermediate
+    *_result keys from prior stages.
 
-    When running locally with --topic-id / --run-id, the event IS the input.
+    When a worker is invoked directly (local testing / CLI), the event is
+    already the input dict — same behaviour.
+
+    Backwards-compat: if the old "Payload.$": "$$" pattern is detected
+    (event has an "Execution" key from the context object), fall back to
+    reading from Execution.Input.
     """
     if "Execution" in event:
+        # Legacy: state machine passed the context object ($$) as payload.
         return event["Execution"].get("Input", {})
-    return event  # direct invocation / local testing
+    # Normal path: full accumulated state ($) is the payload.
+    return event
 
 
 def current_state_name(event: dict) -> str:

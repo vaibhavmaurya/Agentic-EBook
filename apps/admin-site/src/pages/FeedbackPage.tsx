@@ -113,7 +113,7 @@ function TopicFeedbackCard({ summary }: { summary: TopicFeedbackSummary }) {
             ))
           )}
           <Link
-            to={`/topics/${summary.topic_id}/feedback`}
+            to="/feedback"
             style={{ display: 'inline-block', marginTop: 8, fontSize: 13, color: '#3b82f6', textDecoration: 'none' }}
           >
             View all feedback →

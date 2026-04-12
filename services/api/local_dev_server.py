@@ -34,21 +34,16 @@ from topics import lambda_handler as topics_handler
 from reviews import lambda_handler as reviews_handler
 from public import lambda_handler as public_handler
 from feedback import lambda_handler as feedback_handler
+from config_api import lambda_handler as config_handler
 
 
 # ── Pydantic request / response models ───────────────────────────────────────
-
-class SubtopicModel(BaseModel):
-    id: str = Field(..., description="Unique subtopic identifier")
-    title: str = Field(..., description="Subtopic heading")
-    description: Optional[str] = None
-
 
 class TopicCreateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=200, description="Topic title shown in the ebook TOC")
     description: Optional[str] = Field(None, description="Brief summary of the topic")
     instructions: Optional[str] = Field(None, description="Agent instructions for researching and writing this topic")
-    subtopics: Optional[List[SubtopicModel]] = Field(default_factory=list, description="Sub-sections within the topic")
+    subtopics: Optional[List[str]] = Field(default_factory=list, description="Sub-section headings (plain strings)")
     schedule_type: Literal["manual", "daily", "weekly", "custom"] = Field(
         "manual", description="How often the pipeline should run for this topic"
     )
@@ -58,11 +53,7 @@ class TopicCreateRequest(BaseModel):
         "title": "Introduction to Retrieval-Augmented Generation",
         "description": "A practical guide to RAG architectures, embedding models, and vector databases.",
         "instructions": "Focus on real-world production use-cases. Include code examples. Target audience: senior ML engineers.",
-        "subtopics": [
-            {"id": "sub-01", "title": "What is RAG?"},
-            {"id": "sub-02", "title": "Choosing an embedding model"},
-            {"id": "sub-03", "title": "Vector database comparison"},
-        ],
+        "subtopics": ["What is RAG?", "Choosing an embedding model", "Vector database comparison"],
         "schedule_type": "weekly",
     }}}
 
@@ -71,25 +62,17 @@ class TopicUpdateRequest(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = None
     instructions: Optional[str] = None
-    subtopics: Optional[List[SubtopicModel]] = None
+    subtopics: Optional[List[str]] = None
     schedule_type: Optional[Literal["manual", "daily", "weekly", "custom"]] = None
     cron_expression: Optional[str] = None
     active: Optional[bool] = None
 
 
-class ReorderEntry(BaseModel):
-    topic_id: str
-    order: int = Field(..., ge=1)
-
-
 class TopicReorderRequest(BaseModel):
-    topics: List[ReorderEntry] = Field(..., min_length=1)
+    order: List[str] = Field(..., min_length=1, description="Topic IDs in desired display order")
 
     model_config = {"json_schema_extra": {"example": {
-        "topics": [
-            {"topic_id": "abc123", "order": 1},
-            {"topic_id": "def456", "order": 2},
-        ]
+        "order": ["abc123", "def456", "ghi789"]
     }}}
 
 
@@ -607,6 +590,56 @@ async def list_topic_feedback(
 ):
     body = await request.body()
     return _lambda_response(feedback_handler(_build_lambda_event(request, body, {"topicId": topic_id}), None))
+
+
+# ── Admin — LLM Config ───────────────────────────────────────────────────────
+
+@app.get(
+    "/admin/config/models",
+    tags=["Config"],
+    summary="Get LLM model configuration",
+    description="Returns the current model_config.yaml as JSON (from S3, falling back to bundled default).",
+    responses={401: {"model": ErrorResponse}},
+)
+async def get_model_config(request: Request):
+    body = await request.body()
+    return _lambda_response(config_handler(_build_lambda_event(request, body, {}), None))
+
+
+@app.put(
+    "/admin/config/models",
+    tags=["Config"],
+    summary="Save LLM model configuration",
+    description="Writes an updated model_config.yaml to S3. Workers pick up changes on next cold start.",
+    responses={400: {"model": ErrorResponse}, 401: {"model": ErrorResponse}},
+)
+async def put_model_config(request: Request):
+    body = await request.body()
+    return _lambda_response(config_handler(_build_lambda_event(request, body, {}), None))
+
+
+@app.get(
+    "/admin/config/prompts",
+    tags=["Config"],
+    summary="Get agent prompt configuration",
+    description="Returns the current prompts.yaml as JSON (from S3, falling back to bundled default).",
+    responses={401: {"model": ErrorResponse}},
+)
+async def get_prompts_config(request: Request):
+    body = await request.body()
+    return _lambda_response(config_handler(_build_lambda_event(request, body, {}), None))
+
+
+@app.put(
+    "/admin/config/prompts",
+    tags=["Config"],
+    summary="Save agent prompt configuration",
+    description="Writes an updated prompts.yaml to S3. Workers pick up changes on next cold start.",
+    responses={400: {"model": ErrorResponse}, 401: {"model": ErrorResponse}},
+)
+async def put_prompts_config(request: Request):
+    body = await request.body()
+    return _lambda_response(config_handler(_build_lambda_event(request, body, {}), None))
 
 
 # ── Public routes ─────────────────────────────────────────────────────────────

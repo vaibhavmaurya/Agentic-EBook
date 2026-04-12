@@ -132,9 +132,7 @@ export default function RunDetailPage() {
         <span>›</span>
         {topic && (
           <>
-            <Link to={`/topics/${topicId}`} style={{ color: '#6b7280', textDecoration: 'none' }}>
-              {topic.title}
-            </Link>
+            <span style={{ color: '#374151' }}>{topic.title}</span>
             <span>›</span>
           </>
         )}
@@ -204,7 +202,7 @@ export default function RunDetailPage() {
       {(run.status === 'FAILED' || run.status === 'TIMED_OUT') && (
         <div style={{ marginTop: 24 }}>
           <Link
-            to={`/topics/${topicId}`}
+            to={`/topics/${topicId}/runs`}
             style={{
               display: 'inline-block',
               background: '#3b82f6',
@@ -217,7 +215,7 @@ export default function RunDetailPage() {
               textDecoration: 'none',
             }}
           >
-            ↺ Trigger New Run
+            ← Back to Runs
           </Link>
         </div>
       )}

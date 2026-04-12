@@ -9,6 +9,7 @@ import ReviewDetailPage from './pages/ReviewDetailPage'
 import RunHistoryPage from './pages/RunHistoryPage'
 import RunDetailPage from './pages/RunDetailPage'
 import FeedbackPage from './pages/FeedbackPage'
+import ConfigPage from './pages/ConfigPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="topics/:topicId/runs" element={<RunHistoryPage />} />
         <Route path="topics/:topicId/runs/:runId" element={<RunDetailPage />} />
         <Route path="feedback" element={<FeedbackPage />} />
+        <Route path="config" element={<ConfigPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

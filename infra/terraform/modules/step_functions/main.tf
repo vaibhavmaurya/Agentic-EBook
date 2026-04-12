@@ -24,7 +24,7 @@ resource "aws_sfn_state_machine" "pipeline" {
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           FunctionName = var.topic_loader_arn
-          "Payload.$"  = "$$"
+          "Payload.$"  = "$"
         }
         ResultSelector = { "body.$" = "$.Payload" }
         ResultPath     = "$.loader_result"
@@ -36,7 +36,7 @@ resource "aws_sfn_state_machine" "pipeline" {
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           FunctionName = var.topic_context_builder_arn
-          "Payload.$"  = "$$"
+          "Payload.$"  = "$"
         }
         ResultSelector = { "body.$" = "$.Payload" }
         ResultPath     = "$.context_result"
@@ -48,7 +48,7 @@ resource "aws_sfn_state_machine" "pipeline" {
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           FunctionName = var.planner_worker_arn
-          "Payload.$"  = "$$"
+          "Payload.$"  = "$"
         }
         ResultSelector = { "body.$" = "$.Payload" }
         ResultPath     = "$.plan_result"
@@ -60,7 +60,7 @@ resource "aws_sfn_state_machine" "pipeline" {
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           FunctionName = var.research_worker_arn
-          "Payload.$"  = "$$"
+          "Payload.$"  = "$"
         }
         ResultSelector = { "body.$" = "$.Payload" }
         ResultPath     = "$.research_result"
@@ -72,7 +72,7 @@ resource "aws_sfn_state_machine" "pipeline" {
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           FunctionName = var.verifier_worker_arn
-          "Payload.$"  = "$$"
+          "Payload.$"  = "$"
         }
         ResultSelector = { "body.$" = "$.Payload" }
         ResultPath     = "$.verify_result"
@@ -84,7 +84,7 @@ resource "aws_sfn_state_machine" "pipeline" {
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           FunctionName = var.artifact_persister_arn
-          "Payload.$"  = "$$"
+          "Payload.$"  = "$"
         }
         ResultSelector = { "body.$" = "$.Payload" }
         ResultPath     = "$.persist_result"
@@ -96,7 +96,7 @@ resource "aws_sfn_state_machine" "pipeline" {
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           FunctionName = var.draft_worker_arn
-          "Payload.$"  = "$$"
+          "Payload.$"  = "$"
         }
         ResultSelector = { "body.$" = "$.Payload" }
         ResultPath     = "$.draft_result"
@@ -108,7 +108,7 @@ resource "aws_sfn_state_machine" "pipeline" {
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           FunctionName = var.editorial_worker_arn
-          "Payload.$"  = "$$"
+          "Payload.$"  = "$"
         }
         ResultSelector = { "body.$" = "$.Payload" }
         ResultPath     = "$.editorial_result"
@@ -120,7 +120,7 @@ resource "aws_sfn_state_machine" "pipeline" {
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           FunctionName = var.draft_builder_worker_arn
-          "Payload.$"  = "$$"
+          "Payload.$"  = "$"
         }
         ResultSelector = { "body.$" = "$.Payload" }
         ResultPath     = "$.build_result"
@@ -132,7 +132,7 @@ resource "aws_sfn_state_machine" "pipeline" {
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           FunctionName = var.diff_worker_arn
-          "Payload.$"  = "$$"
+          "Payload.$"  = "$"
         }
         ResultSelector = { "body.$" = "$.Payload" }
         ResultPath     = "$.diff_result"
@@ -144,14 +144,15 @@ resource "aws_sfn_state_machine" "pipeline" {
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           FunctionName = var.approval_worker_arn
-          "Payload.$"  = "$$"
+          "Payload.$"  = "$"
         }
         ResultSelector = { "body.$" = "$.Payload" }
         ResultPath     = "$.notify_result"
         Next           = "WaitForApproval"
       }
 
-      # Callback pattern — execution pauses here until SendTaskSuccess/Failure
+      # Callback pattern — execution pauses here until SendTaskSuccess/Failure.
+      # task_token comes from the context object ($$); input is the full current state ($).
       WaitForApproval = {
         Type     = "Task"
         Resource = "arn:aws:states:::lambda:invoke.waitForTaskToken"
@@ -159,7 +160,7 @@ resource "aws_sfn_state_machine" "pipeline" {
           FunctionName = var.approval_worker_arn
           Payload = {
             "task_token.$" = "$$.Task.Token"
-            "input.$"      = "$$"
+            "input.$"      = "$"
           }
         }
         HeartbeatSeconds = 259200  # 72 hours

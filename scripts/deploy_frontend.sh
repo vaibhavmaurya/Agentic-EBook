@@ -143,7 +143,7 @@ deploy_admin() {
 
     # Write env file for Vite build
     cat > .env.production << EOF
-VITE_API_URL=$api_url
+VITE_API_BASE_URL=$api_url
 VITE_COGNITO_USER_POOL_ID=$cognito_pool_id
 VITE_COGNITO_CLIENT_ID=$cognito_client_id
 EOF

@@ -61,6 +61,16 @@ export default function Layout() {
               Feedback
             </NavLink>
           </li>
+          <li>
+            <NavLink
+              to="/config"
+              className={({ isActive }) =>
+                `${styles.navLink} ${isActive ? styles.active : ''}`
+              }
+            >
+              LLM Config
+            </NavLink>
+          </li>
         </ul>
 
         <div className={styles.user}>
