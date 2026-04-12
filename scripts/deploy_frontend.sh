@@ -172,6 +172,15 @@ EOF
 
     npm run build
     rm -f .env
+
+    # Save dist zip to S3 so search_index_worker can trigger a redeploy after publish
+    local zip_path="/tmp/public-site-latest.zip"
+    python3 "$REPO_ROOT/scripts/zipdir.py" "$REPO_ROOT/apps/public-site/dist" "$zip_path"
+    S3_BUCKET="${S3_ARTIFACT_BUCKET:-ebook-platform-artifacts-$ENV}"
+    aws s3 cp "$zip_path" "s3://$S3_BUCKET/deployments/public-site.zip" \
+        --region "$AWS_REGION" --no-progress
+    echo "  Saved dist zip to s3://$S3_BUCKET/deployments/public-site.zip"
+
     deploy_to_amplify "$PUBLIC_APP_NAME" "$REPO_ROOT/apps/public-site/dist"
 }
 

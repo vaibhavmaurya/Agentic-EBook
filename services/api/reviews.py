@@ -279,10 +279,22 @@ def _handle_submit_review(event: dict, topic_id: str, run_id: str) -> dict:
 
 # ── Lambda handler ────────────────────────────────────────────────────────────
 
+def _parse_path_params(path: str) -> dict:
+    """Extract topicId and runId from rawPath since API GW proxy+ only provides 'proxy'."""
+    import re
+    m = re.match(r".*/topics/([^/]+)/review/([^/]+)", path)
+    if m:
+        return {"topicId": m.group(1), "runId": m.group(2)}
+    m = re.match(r".*/topics/([^/]+)/review$", path)
+    if m:
+        return {"topicId": m.group(1)}
+    return {}
+
+
 def lambda_handler(event: dict, _context: Any) -> dict:
     method = event.get("requestContext", {}).get("http", {}).get("method", "GET").upper()
     path = event.get("rawPath", "")
-    params = event.get("pathParameters") or {}
+    params = {**(event.get("pathParameters") or {}), **_parse_path_params(path)}
 
     topic_id = params.get("topicId")
     run_id = params.get("runId")

@@ -77,8 +77,12 @@ def load_topic_config(topic_id: str, run_id: str, trigger_source: str, triggered
         stage_failed(run_id, _STAGE, err, "TOPIC_INACTIVE")
         raise ValueError(err)
 
-    # Transition run status → RUNNING
-    set_run_status(topic_id, run_id, RunStatus.RUNNING)
+    # Transition run status → RUNNING (also set started_at if not already set by trigger API)
+    from services.workers.base import get_table, utc_now as _utc_now
+    _now = _utc_now()
+    run_rec = get_table().get_item(Key={"PK": f"TOPIC#{topic_id}", "SK": f"RUN#{run_id}"}).get("Item", {})
+    extra = {} if run_rec.get("started_at") else {"started_at": _now}
+    set_run_status(topic_id, run_id, RunStatus.RUNNING, **extra)
 
     result = {
         "topic_id": topic_id,
