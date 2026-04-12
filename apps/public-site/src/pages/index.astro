@@ -1,69 +1,84 @@
 ---
 import Base from '../layouts/Base.astro'
-import { getJson } from '../lib/s3'
-import type { TocData } from '../lib/types'
-
-let toc: TocData = { generated_at: '', topic_count: 0, topics: [] }
-try {
-  toc = await getJson<TocData>('site/current/toc.json')
-} catch {
-  // S3 not yet populated — render empty state
-}
-
-function fmtDate(iso: string) {
-  if (!iso) return ''
-  return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-}
 ---
 <Base title="Ebook — Table of Contents">
   <main style="max-width:1100px;margin:0 auto;padding:48px 24px;">
     <div style="margin-bottom:40px;">
       <h1 style="font-size:2rem;margin-bottom:8px;">Table of Contents</h1>
-      <p style="color:var(--color-muted);font-size:14px;">
-        {toc.topic_count} chapter{toc.topic_count !== 1 ? 's' : ''} · updated {fmtDate(toc.generated_at)}
-      </p>
+      <p id="toc-meta" style="color:var(--color-muted);font-size:14px;">Loading…</p>
     </div>
 
-    {toc.topics.length === 0 ? (
-      <div style="text-align:center;padding:80px 0;color:var(--color-muted);">
-        <p style="font-size:2rem;margin-bottom:12px;">📖</p>
-        <p>No chapters published yet. Check back soon.</p>
-      </div>
-    ) : (
-      <div style="display:flex;flex-direction:column;gap:16px;">
-        {toc.topics.map((topic, i) => (
-          <a
-            href={`/topics/${topic.slug}`}
-            style="display:block;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius);padding:24px;text-decoration:none;color:var(--color-text);box-shadow:var(--shadow);transition:box-shadow 0.15s;"
-            onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,.12)'"
-            onmouseout="this.style.boxShadow='var(--shadow)'"
-          >
+    <div id="toc-loading" style="text-align:center;padding:60px 0;color:var(--color-muted);">
+      <p>Loading chapters…</p>
+    </div>
+
+    <div id="toc-empty" style="display:none;text-align:center;padding:80px 0;color:var(--color-muted);">
+      <p style="font-size:2rem;margin-bottom:12px;">📖</p>
+      <p>No chapters published yet. Check back soon.</p>
+    </div>
+
+    <div id="toc-list" style="display:none;flex-direction:column;gap:16px;"></div>
+  </main>
+
+  <script>
+    const API_BASE = import.meta.env.PUBLIC_API_BASE_URL || ''
+
+    function fmtDate(iso: string) {
+      if (!iso) return ''
+      return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    }
+
+    async function loadToc() {
+      try {
+        const res = await fetch(`${API_BASE}/public/toc`)
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const toc = await res.json()
+
+        const meta = document.getElementById('toc-meta')!
+        meta.textContent = `${toc.topic_count} chapter${toc.topic_count !== 1 ? 's' : ''} · updated ${fmtDate(toc.generated_at)}`
+
+        document.getElementById('toc-loading')!.style.display = 'none'
+
+        if (!toc.topics || toc.topics.length === 0) {
+          document.getElementById('toc-empty')!.style.display = 'block'
+          return
+        }
+
+        const list = document.getElementById('toc-list')!
+        list.style.display = 'flex'
+
+        toc.topics.forEach((topic: any, i: number) => {
+          const a = document.createElement('a')
+          a.href = `/topic?id=${encodeURIComponent(topic.topic_id)}`
+          a.style.cssText = 'display:block;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius);padding:24px;text-decoration:none;color:var(--color-text);box-shadow:var(--shadow);transition:box-shadow 0.15s;'
+          a.addEventListener('mouseover', () => { a.style.boxShadow = '0 4px 12px rgba(0,0,0,.12)' })
+          a.addEventListener('mouseout', () => { a.style.boxShadow = 'var(--shadow)' })
+
+          a.innerHTML = `
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
               <div style="flex:1;min-width:0;">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-                  <span style="font-size:13px;color:var(--color-muted);font-weight:600;">
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-                  <h2 style="font-size:1.1rem;font-weight:700;">{topic.title}</h2>
+                  <span style="font-size:13px;color:var(--color-muted);font-weight:600;">${String(i + 1).padStart(2, '0')}</span>
+                  <h2 style="font-size:1.1rem;font-weight:700;margin:0;">${topic.title}</h2>
                 </div>
-                <p style="font-size:14px;color:var(--color-muted);margin-bottom:10px;">
-                  {topic.description}
-                </p>
-                {topic.release_notes && (
-                  <p style="font-size:13px;color:var(--color-text);font-style:italic;">
-                    {topic.release_notes}
-                  </p>
-                )}
+                <p style="font-size:14px;color:var(--color-muted);margin-bottom:10px;">${topic.description || ''}</p>
+                ${topic.release_notes ? `<p style="font-size:13px;color:var(--color-text);font-style:italic;">${topic.release_notes}</p>` : ''}
               </div>
               <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
-                <span class="badge">{topic.version}</span>
-                <span style="font-size:12px;color:var(--color-muted);">{fmtDate(topic.published_at)}</span>
-                <span style="font-size:12px;color:var(--color-muted);">{topic.word_count.toLocaleString()} words</span>
+                <span class="badge">${topic.version || ''}</span>
+                <span style="font-size:12px;color:var(--color-muted);">${fmtDate(topic.published_at)}</span>
+                <span style="font-size:12px;color:var(--color-muted);">${(topic.word_count || 0).toLocaleString()} words</span>
               </div>
-            </div>
-          </a>
-        ))}
-      </div>
-    )}
-  </main>
+            </div>`
+          list.appendChild(a)
+        })
+      } catch (err) {
+        document.getElementById('toc-loading')!.style.display = 'none'
+        document.getElementById('toc-empty')!.style.display = 'block'
+        document.getElementById('toc-meta')!.textContent = 'Could not load table of contents.'
+      }
+    }
+
+    loadToc()
+  </script>
 </Base>

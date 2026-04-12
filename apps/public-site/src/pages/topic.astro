@@ -1,0 +1,196 @@
+---
+import Base from '../layouts/Base.astro'
+---
+<Base title="Loading chapter…">
+  <div style="max-width:1100px;margin:0 auto;padding:48px 24px;display:grid;grid-template-columns:220px 1fr;gap:48px;align-items:start;">
+
+    <!-- Sidebar -->
+    <aside style="position:sticky;top:24px;">
+      <a href="/" style="font-size:13px;color:var(--color-muted);text-decoration:none;">← Contents</a>
+      <div id="sidebar-meta" style="margin-top:20px;display:flex;flex-direction:column;gap:8px;"></div>
+      <div id="sidebar-release" style="display:none;margin-top:20px;padding:12px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius);font-size:13px;line-height:1.6;color:var(--color-muted);">
+        <strong style="display:block;margin-bottom:4px;color:var(--color-text);">What's new</strong>
+        <span id="sidebar-release-notes"></span>
+      </div>
+      <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--color-border);">
+        <p style="font-size:12px;color:var(--color-muted);margin-bottom:8px;font-weight:600;">FEEDBACK</p>
+        <button id="btn-comment" style="width:100%;font:inherit;cursor:pointer;border:1px solid var(--color-border);background:var(--color-surface);border-radius:var(--radius);padding:7px 12px;font-size:13px;color:var(--color-muted);text-align:left;">
+          + Leave a comment
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <article>
+      <div id="topic-loading" style="padding:40px 0;color:var(--color-muted);">Loading chapter…</div>
+      <div id="topic-error" style="display:none;padding:40px 0;color:var(--color-muted);">Chapter not found or not yet published.</div>
+
+      <div id="chapter-content" class="prose" style="display:none;"></div>
+
+      <!-- Highlight tooltip -->
+      <div id="highlight-tooltip" style="display:none;position:absolute;z-index:100;background:var(--color-text);color:#fff;border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer;user-select:none;">
+        💬 Comment on selection
+      </div>
+
+      <!-- Comment form -->
+      <div id="comment-form" style="display:none;margin-top:40px;border-top:1px solid var(--color-border);padding-top:32px;">
+        <h3 style="font-size:1rem;margin-bottom:12px;">Leave a comment</h3>
+        <textarea id="comment-text" rows="4" placeholder="Share your thoughts on this chapter…"
+          style="width:100%;font:inherit;padding:10px 14px;border:1px solid var(--color-border);border-radius:var(--radius);font-size:14px;resize:vertical;margin-bottom:10px;"></textarea>
+        <div style="display:flex;gap:10px;">
+          <button id="btn-submit-comment" style="font:inherit;cursor:pointer;background:var(--color-primary);color:#fff;border:none;border-radius:var(--radius);padding:8px 20px;font-size:14px;font-weight:500;">Submit</button>
+          <button id="btn-cancel-comment" style="font:inherit;cursor:pointer;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius);padding:8px 16px;font-size:14px;">Cancel</button>
+        </div>
+        <p id="comment-status" style="margin-top:8px;font-size:13px;color:var(--color-muted);"></p>
+      </div>
+    </article>
+  </div>
+
+  <!-- Mermaid -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'
+    mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' })
+    window.__mermaid = mermaid
+  </script>
+
+  <script>
+    import { marked } from 'marked'
+
+    const API_BASE = import.meta.env.PUBLIC_API_BASE_URL || ''
+
+    function fmtDate(iso: string) {
+      return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    }
+
+    const params = new URLSearchParams(location.search)
+    const topicId = params.get('id') || ''
+
+    async function loadTopic() {
+      if (!topicId) {
+        document.getElementById('topic-loading')!.style.display = 'none'
+        document.getElementById('topic-error')!.style.display = 'block'
+        return
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/public/topics/${encodeURIComponent(topicId)}`)
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const data = await res.json()
+
+        // Update page title
+        document.title = data.title || 'Chapter'
+
+        // Sidebar metadata
+        const meta = document.getElementById('sidebar-meta')!
+        meta.innerHTML = `
+          <span class="badge">${data.version || ''}</span>
+          <span style="font-size:12px;color:var(--color-muted);">Published ${fmtDate(data.published_at)}</span>
+          <span style="font-size:12px;color:var(--color-muted);">${(data.word_count || 0).toLocaleString()} words</span>`
+
+        if (data.release_notes) {
+          document.getElementById('sidebar-release-notes')!.textContent = data.release_notes
+          document.getElementById('sidebar-release')!.style.display = 'block'
+        }
+
+        // Render markdown
+        const content = document.getElementById('chapter-content')!
+        content.innerHTML = await marked.parse(data.content || '')
+        content.style.display = 'block'
+
+        // Render mermaid diagrams
+        content.querySelectorAll('pre code.language-mermaid').forEach((el) => {
+          const div = document.createElement('div')
+          div.className = 'mermaid'
+          div.style.cssText = 'margin:1rem 0;text-align:center;'
+          div.textContent = el.textContent || ''
+          el.parentElement?.replaceWith(div)
+        })
+        ;(window as any).__mermaid?.run()
+
+        document.getElementById('topic-loading')!.style.display = 'none'
+      } catch (err) {
+        document.getElementById('topic-loading')!.style.display = 'none'
+        document.getElementById('topic-error')!.style.display = 'block'
+      }
+    }
+
+    loadTopic()
+
+    // ── Comment form toggle ────────────────────────────────────────────────
+    document.getElementById('btn-comment')?.addEventListener('click', () => {
+      const form = document.getElementById('comment-form')!
+      form.style.display = form.style.display === 'none' ? 'block' : 'none'
+    })
+
+    document.getElementById('btn-cancel-comment')?.addEventListener('click', () => {
+      document.getElementById('comment-form')!.style.display = 'none'
+    })
+
+    document.getElementById('btn-submit-comment')?.addEventListener('click', async () => {
+      const textarea = document.getElementById('comment-text') as HTMLTextAreaElement
+      const status = document.getElementById('comment-status')!
+      const text = textarea.value.trim()
+      if (!text) { status.textContent = 'Please enter a comment.'; return }
+      status.textContent = 'Submitting…'
+      try {
+        const res = await fetch(`${API_BASE}/public/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic_id: topicId, comment_text: text, section_id: null }),
+        })
+        if (res.ok) {
+          status.textContent = '✓ Comment submitted — thank you!'
+          textarea.value = ''
+        } else {
+          status.textContent = 'Submission failed. Please try again.'
+        }
+      } catch {
+        status.textContent = 'Network error. Please try again.'
+      }
+    })
+
+    // ── Text selection highlight widget ───────────────────────────────────
+    const tooltip = document.getElementById('highlight-tooltip')!
+    let pendingSelection: { text: string; sectionId: string | null } | null = null
+
+    document.getElementById('chapter-content')?.addEventListener('mouseup', () => {
+      const sel = window.getSelection()
+      if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+        tooltip.style.display = 'none'
+        return
+      }
+      pendingSelection = {
+        text: sel.toString().trim(),
+        sectionId: (sel.anchorNode as Element)?.closest?.('[id]')?.id ?? null,
+      }
+      const range = sel.getRangeAt(0)
+      const rect = range.getBoundingClientRect()
+      tooltip.style.display = 'block'
+      tooltip.style.top = `${window.scrollY + rect.top - 44}px`
+      tooltip.style.left = `${window.scrollX + rect.left}px`
+    })
+
+    tooltip.addEventListener('click', async () => {
+      if (!pendingSelection) return
+      const sel = pendingSelection
+      tooltip.style.display = 'none'
+      pendingSelection = null
+      try {
+        await fetch(`${API_BASE}/public/highlights`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic_id: topicId, section_id: sel.sectionId, selected_text: sel.text }),
+        })
+      } catch { /* non-fatal */ }
+      const form = document.getElementById('comment-form')!
+      const textarea = document.getElementById('comment-text') as HTMLTextAreaElement
+      form.style.display = 'block'
+      textarea.value = `Re: "${sel.text.slice(0, 80)}" — `
+      textarea.focus()
+    })
+
+    document.addEventListener('mousedown', (e) => {
+      if (!tooltip.contains(e.target as Node)) tooltip.style.display = 'none'
+    })
+  </script>
+</Base>

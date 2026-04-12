@@ -1,22 +1,10 @@
 ---
 import Base from '../layouts/Base.astro'
-import { getJson } from '../lib/s3'
-import type { SearchIndex } from '../lib/types'
-
-let searchIndex: SearchIndex = { generated_at: '', topic_count: 0, documents: [] }
-try {
-  searchIndex = await getJson<SearchIndex>('site/current/search/index.json')
-} catch { /* no published content yet */ }
-
-// Inline the documents JSON into the page for client-side Lunr indexing
-const docsJson = JSON.stringify(searchIndex.documents)
 ---
 <Base title="Search — Ebook">
   <main style="max-width:760px;margin:0 auto;padding:48px 24px;">
     <h1 style="font-size:1.75rem;margin-bottom:8px;">Search</h1>
-    <p style="color:var(--color-muted);font-size:14px;margin-bottom:28px;">
-      {searchIndex.topic_count} chapter{searchIndex.topic_count !== 1 ? 's' : ''} indexed
-    </p>
+    <p id="search-meta" style="color:var(--color-muted);font-size:14px;margin-bottom:28px;">Loading index…</p>
 
     <div style="position:relative;margin-bottom:32px;">
       <input
@@ -33,46 +21,59 @@ const docsJson = JSON.stringify(searchIndex.documents)
     <div id="search-results"></div>
   </main>
 
-  <script define:vars={{ docsJson }}>
-    // Import lunr lazily — avoids Astro SSR issues
-    async function initSearch() {
-      const { default: lunr } = await import('/node_modules/lunr/lunr.js')
-      const docs = JSON.parse(docsJson)
+  <script>
+    import lunr from 'lunr'
 
-      if (!docs.length) {
-        document.getElementById('search-results').innerHTML =
-          '<p style="color:var(--color-muted)">No content indexed yet.</p>'
+    const API_BASE = import.meta.env.PUBLIC_API_BASE_URL || ''
+
+    async function initSearch() {
+      const resultsEl = document.getElementById('search-results')!
+      const metaEl = document.getElementById('search-meta')!
+      const input = document.getElementById('search-input') as HTMLInputElement
+
+      let docs: any[] = []
+      let idx: lunr.Index | null = null
+
+      try {
+        const res = await fetch(`${API_BASE}/public/search-index`)
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const data = await res.json()
+        docs = data.documents || []
+        metaEl.textContent = `${data.topic_count || 0} chapter${(data.topic_count || 0) !== 1 ? 's' : ''} indexed`
+
+        if (docs.length === 0) {
+          resultsEl.innerHTML = '<p style="color:var(--color-muted)">No content indexed yet.</p>'
+          return
+        }
+
+        idx = lunr(function () {
+          this.ref('id')
+          this.field('title', { boost: 10 })
+          this.field('body')
+          docs.forEach((d) => this.add(d))
+        })
+      } catch {
+        metaEl.textContent = 'Search index unavailable.'
         return
       }
 
-      const idx = lunr(function () {
-        this.ref('id')
-        this.field('title', { boost: 10 })
-        this.field('body')
-        docs.forEach((d) => this.add(d))
-      })
+      const byId: Record<string, any> = Object.fromEntries(docs.map((d) => [d.id, d]))
 
-      const byId = Object.fromEntries(docs.map((d) => [d.id, d]))
-
-      function render(results) {
-        if (!results.length) {
-          return '<p style="color:var(--color-muted)">No results found.</p>'
-        }
+      function render(results: lunr.Index.Result[]) {
+        if (!results.length) return '<p style="color:var(--color-muted)">No results found.</p>'
         return results.map(({ ref }) => {
           const doc = byId[ref]
           if (!doc) return ''
-          return `
-            <a href="/topics/${doc.slug}" style="display:block;padding:20px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius);text-decoration:none;color:var(--color-text);margin-bottom:12px;">
-              <strong style="font-size:1rem;">${doc.title}</strong>
-              <p style="font-size:14px;color:var(--color-muted);margin-top:4px;">${doc.body.slice(0, 120)}…</p>
-            </a>`
+          return `<a href="/topic?id=${encodeURIComponent(doc.topic_id || doc.id)}"
+            style="display:block;padding:20px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius);text-decoration:none;color:var(--color-text);margin-bottom:12px;">
+            <strong style="font-size:1rem;">${doc.title}</strong>
+            <p style="font-size:14px;color:var(--color-muted);margin-top:4px;">${(doc.body || '').slice(0, 120)}…</p>
+          </a>`
         }).join('')
       }
 
-      const input = document.getElementById('search-input')
-      const resultsEl = document.getElementById('search-results')
-
       input.addEventListener('input', () => {
+        if (!idx) return
         const q = input.value.trim()
         if (!q) { resultsEl.innerHTML = ''; return }
         try {

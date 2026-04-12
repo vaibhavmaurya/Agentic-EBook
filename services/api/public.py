@@ -2,9 +2,12 @@
 Public API Lambda handler — M7.
 
 Routes:
-  POST /public/comments    — reader comment on a topic/section
-  POST /public/highlights  — text selection highlight
-  GET  /public/releases/latest — recently published topics (from DDB)
+  GET  /public/toc                  — table of contents (reads toc.json from S3)
+  GET  /public/topics/{topicId}     — topic content + manifest (reads from S3)
+  GET  /public/search-index         — Lunr.js search index JSON (reads from S3)
+  GET  /public/releases/latest      — recently published topics (from DDB)
+  POST /public/comments             — reader comment on a topic/section
+  POST /public/highlights           — text selection highlight
 """
 from __future__ import annotations
 
@@ -18,6 +21,7 @@ import boto3
 from boto3.dynamodb.conditions import Attr
 
 _TABLE_NAME = os.environ.get("DYNAMODB_TABLE_NAME", "ebook-platform-dev")
+_S3_BUCKET = os.environ.get("S3_ARTIFACT_BUCKET", "")
 _AWS_REGION = os.environ.get("AWS_REGION_NAME", os.environ.get("AWS_REGION", "us-east-1"))
 _MAX_COMMENT_LEN = 2000
 _MAX_HIGHLIGHT_LEN = 500
@@ -26,6 +30,20 @@ _MAX_RELEASES = 20
 
 def _table():
     return boto3.resource("dynamodb", region_name=_AWS_REGION).Table(_TABLE_NAME)
+
+
+def _s3():
+    return boto3.client("s3", region_name=_AWS_REGION)
+
+
+def _read_s3_json(key: str) -> dict | list:
+    resp = _s3().get_object(Bucket=_S3_BUCKET, Key=key)
+    return json.loads(resp["Body"].read())
+
+
+def _read_s3_text(key: str) -> str:
+    resp = _s3().get_object(Bucket=_S3_BUCKET, Key=key)
+    return resp["Body"].read().decode("utf-8")
 
 
 def _ok(body: Any, status: int = 200) -> dict:
@@ -55,6 +73,52 @@ def _parse_body(event: dict) -> dict:
     if isinstance(body, str):
         return json.loads(body)
     return body
+
+
+# ── GET /public/toc ──────────────────────────────────────────────────────────
+
+def _handle_get_toc() -> dict:
+    try:
+        data = _read_s3_json("site/current/toc.json")
+        return _ok(data)
+    except Exception:
+        return _ok({"generated_at": "", "topic_count": 0, "topics": []})
+
+
+# ── GET /public/search-index ──────────────────────────────────────────────────
+
+def _handle_get_search_index() -> dict:
+    try:
+        data = _read_s3_json("site/current/search/index.json")
+        return _ok(data)
+    except Exception:
+        return _ok({"generated_at": "", "topic_count": 0, "documents": []})
+
+
+# ── GET /public/topics/{topicId} ──────────────────────────────────────────────
+
+def _handle_get_topic(topic_id: str) -> dict:
+    """
+    Returns the latest published content + manifest for a topic.
+    Reads current_published_version from DynamoDB META, then fetches
+    content.md and manifest.json from S3.
+    """
+    meta = _table().get_item(
+        Key={"PK": f"TOPIC#{topic_id}", "SK": "META"}
+    ).get("Item")
+
+    if not meta or not meta.get("current_published_version"):
+        return _err("NOT_FOUND", "Topic not found or not yet published.", 404)
+
+    version = meta["current_published_version"]
+    prefix = f"published/topics/{topic_id}/{version}"
+
+    try:
+        manifest = _read_s3_json(f"{prefix}/manifest.json")
+        content = _read_s3_text(f"{prefix}/content.md")
+        return _ok({**manifest, "content": content, "version": version})
+    except Exception as exc:
+        return _err("CONTENT_UNAVAILABLE", f"Could not read topic content: {exc}", 503)
 
 
 # ── POST /public/comments ─────────────────────────────────────────────────────
@@ -183,15 +247,6 @@ def lambda_handler(event: dict, _context: Any) -> dict:
     method = event.get("requestContext", {}).get("http", {}).get("method", "GET").upper()
     path = event.get("rawPath", "")
 
-    if method == "POST" and path.endswith("/public/comments"):
-        return _handle_post_comment(event)
-
-    if method == "POST" and path.endswith("/public/highlights"):
-        return _handle_post_highlight(event)
-
-    if method == "GET" and path.endswith("/public/releases/latest"):
-        return _handle_get_releases()
-
     # Handle CORS preflight
     if method == "OPTIONS":
         return {
@@ -203,5 +258,27 @@ def lambda_handler(event: dict, _context: Any) -> dict:
             },
             "body": "",
         }
+
+    if method == "POST" and path.endswith("/public/comments"):
+        return _handle_post_comment(event)
+
+    if method == "POST" and path.endswith("/public/highlights"):
+        return _handle_post_highlight(event)
+
+    if method == "GET" and path.endswith("/public/releases/latest"):
+        return _handle_get_releases()
+
+    if method == "GET" and path.endswith("/public/toc"):
+        return _handle_get_toc()
+
+    if method == "GET" and path.endswith("/public/search-index"):
+        return _handle_get_search_index()
+
+    # GET /public/topics/{topicId}
+    if method == "GET" and "/public/topics/" in path:
+        parts = path.rstrip("/").split("/public/topics/")
+        if len(parts) == 2 and parts[1]:
+            topic_id = parts[1].split("/")[0]
+            return _handle_get_topic(topic_id)
 
     return _err("NOT_FOUND", f"No route matched: {method} {path}", 404)
