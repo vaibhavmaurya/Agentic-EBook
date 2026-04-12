@@ -101,13 +101,6 @@ deploy_to_amplify() {
     done
 
     if [[ "$status" == "SUCCEED" ]]; then
-        local domain
-        domain=$(aws amplify get-branch \
-            --app-id "$app_id" \
-            --branch-name "$branch" \
-            --region "$AWS_REGION" \
-            --query 'branch.branchName' \
-            --output text)
         echo "  ✓ Deployed: https://$branch.$app_id.amplifyapp.com"
     else
         echo "  ✗ Deployment ended with status: $status"

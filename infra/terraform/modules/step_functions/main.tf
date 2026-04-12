@@ -190,7 +190,7 @@ resource "aws_sfn_state_machine" "pipeline" {
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           FunctionName = var.publish_worker_arn
-          "Payload.$"  = "$$"
+          "Payload.$"  = "$"
         }
         ResultSelector = { "body.$" = "$.Payload" }
         ResultPath     = "$.publish_result"
@@ -202,7 +202,7 @@ resource "aws_sfn_state_machine" "pipeline" {
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           FunctionName = var.search_index_worker_arn
-          "Payload.$"  = "$$"
+          "Payload.$"  = "$"
         }
         ResultSelector = { "body.$" = "$.Payload" }
         ResultPath     = "$.index_result"
@@ -214,7 +214,7 @@ resource "aws_sfn_state_machine" "pipeline" {
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           FunctionName = var.approval_worker_arn
-          "Payload.$"  = "$$"
+          "Payload.$"  = "$"
         }
         ResultSelector = { "body.$" = "$.Payload" }
         ResultPath     = "$.rejection_result"
