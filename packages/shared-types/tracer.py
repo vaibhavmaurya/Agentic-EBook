@@ -27,6 +27,17 @@ def _get_table():
     return boto3.resource("dynamodb", **kwargs).Table(_TABLE_NAME)
 
 
+def _dynamo_safe(obj):
+    """Recursively convert floats to strings for DynamoDB compatibility."""
+    if isinstance(obj, float):
+        return str(round(obj, 6))
+    if isinstance(obj, dict):
+        return {k: _dynamo_safe(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_dynamo_safe(v) for v in obj]
+    return obj
+
+
 def _write(event: TraceEvent) -> None:
     table = _get_table()
     pk = f"RUN#{event.run_id}"
@@ -55,7 +66,7 @@ def _write(event: TraceEvent) -> None:
     if event.error_classification:
         item["error_classification"] = event.error_classification
     if event.metadata:
-        item["metadata"] = event.metadata
+        item["metadata"] = _dynamo_safe(event.metadata)
 
     # GSI2 fields for operational monitoring
     item["RUN_STATUS"] = f"RUN_STATUS#{event.event_type}"

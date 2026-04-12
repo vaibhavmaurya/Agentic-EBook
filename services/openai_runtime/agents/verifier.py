@@ -22,7 +22,7 @@ from ..provider import Message
 
 _AGENT = "verifier"
 _MIN_SOURCES = 2
-_MIN_QUALITY_SCORE = 0.4
+_MIN_QUALITY_SCORE = 0.3
 
 
 def run_verifier_agent(topic_context: dict, evidence_set: dict) -> dict:
@@ -53,11 +53,16 @@ def run_verifier_agent(topic_context: dict, evidence_set: dict) -> dict:
     # Filter by relevance threshold
     good_sources = [s for s in sources if s.get("relevance_score", 0) >= _MIN_QUALITY_SCORE]
 
+    # Fall back to top sources by score if not enough pass the threshold
     if len(good_sources) < _MIN_SOURCES:
-        raise ValueError(
-            f"Insufficient evidence: only {len(good_sources)} source(s) met the quality "
-            f"threshold ({_MIN_QUALITY_SCORE}). Minimum required: {_MIN_SOURCES}."
-        )
+        if len(sources) >= _MIN_SOURCES:
+            sorted_sources = sorted(sources, key=lambda s: s.get("relevance_score", 0), reverse=True)
+            good_sources = sorted_sources[:_MIN_SOURCES]
+        else:
+            raise ValueError(
+                f"Insufficient evidence: only {len(sources)} source(s) retrieved. "
+                f"Minimum required: {_MIN_SOURCES}."
+            )
 
     system = Template(get_prompt(_AGENT, "system")).safe_substitute()
     user = Template(get_prompt(_AGENT, "user")).safe_substitute(

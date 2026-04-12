@@ -154,6 +154,202 @@ npm run dev
 # Serves at http://localhost:4321
 ```
 
+## Managing LLM Configuration and Prompts
+
+All model configuration and agent prompts are stored in two YAML files:
+
+| File | Purpose |
+|---|---|
+| `services/openai_runtime/model_config.yaml` | Provider selection, model IDs, pricing, per-agent parameters |
+| `services/openai_runtime/prompts.yaml` | All agent system/user prompts with template variables |
+
+### How workers load config
+
+Workers use a priority chain to find these files at runtime:
+
+```
+1. Explicit env var (MODEL_CONFIG_PATH or PROMPTS_CONFIG_PATH)
+   ├─ If value starts with s3://  → download from S3
+   └─ Otherwise                  → read as a local file path
+
+2. Auto-load from S3 (if S3_ARTIFACT_BUCKET is set)
+   └─ s3://<S3_ARTIFACT_BUCKET>/config/model_config.yaml
+   └─ s3://<S3_ARTIFACT_BUCKET>/config/prompts.yaml
+
+3. Bundled local file (always available as fallback)
+   └─ services/openai_runtime/model_config.yaml
+   └─ services/openai_runtime/prompts.yaml
+```
+
+In production (Lambda), `S3_ARTIFACT_BUCKET` is always set, so workers automatically pull the live config from S3 on every cold start — **no Lambda redeployment required** when you change models or prompts.
+
+### Changing the active LLM provider
+
+Edit `services/openai_runtime/model_config.yaml`:
+
+```yaml
+active_provider: openai   # ← change to: anthropic | gemini
+```
+
+Then upload to S3 and changes take effect on the next Lambda invocation:
+
+```bash
+source .env.local
+python scripts/upload_configs.py
+```
+
+Supported providers and their secrets:
+
+| Provider | Secret name in Secrets Manager | High model | Low model |
+|---|---|---|---|
+| `openai` | `ebook-platform/openai-key` | `gpt-4o-2024-11-20` | `gpt-4o-mini-2024-07-18` |
+| `anthropic` | `ebook-platform/anthropic-key` | `claude-opus-4-6` | `claude-haiku-4-5-20251001` |
+| `gemini` | `ebook-platform/gemini-key` | `gemini-2.0-pro` | `gemini-2.0-flash` |
+
+### Changing model IDs or pricing
+
+Edit the provider block in `model_config.yaml`:
+
+```yaml
+providers:
+  openai:
+    models:
+      high_capability: gpt-4o-2024-11-20    # ← change model ID here
+      low_capability:  gpt-4o-mini-2024-07-18
+    pricing_per_million_tokens:
+      high_capability:
+        input:  2.50
+        output: 10.00
+```
+
+### Changing per-agent parameters
+
+Each agent has its own block under `agents:`:
+
+```yaml
+agents:
+  writer:
+    capability: high        # high → uses high_capability model; low → uses low_capability
+    max_tokens: 8192        # max output tokens
+    temperature: 0.6        # 0.0 deterministic, 1.0 creative
+    timeout_sec: 180        # hard timeout for the LLM API call
+```
+
+`capability` maps directly to the provider's `high_capability` or `low_capability` model ID.
+To force a specific model regardless of capability tier, add:
+
+```yaml
+    model_override: gpt-4o-mini-2024-07-18
+```
+
+### Changing prompts
+
+Edit `services/openai_runtime/prompts.yaml`. Each agent has `system` and `user` keys.
+Template variables use `${variable_name}` syntax:
+
+```yaml
+planner:
+  system: |
+    You are a research planner...
+  user: |
+    Topic: ${title}
+    Description: ${description}
+    ...
+```
+
+Available variables per agent are listed in the header comment of `prompts.yaml`.
+
+After editing, upload to S3:
+
+```bash
+source .env.local
+python scripts/upload_configs.py
+```
+
+### Applying changes locally (without S3)
+
+When running workers locally, the bundled file is used unless `S3_ARTIFACT_BUCKET` is set.
+To test a config change locally without uploading to S3:
+
+```bash
+# Option A: unset the bucket var so local file is always used
+unset S3_ARTIFACT_BUCKET
+python scripts/run_pipeline_local.py --create-topic --auto-approve
+
+# Option B: point to a specific local file via env var
+MODEL_CONFIG_PATH=/path/to/my-test-config.yaml \
+python scripts/run_pipeline_local.py --create-topic --auto-approve
+```
+
+### Verifying which config was loaded
+
+Add a quick check to confirm S3 loading is active:
+
+```python
+source .env.local
+source .venv/Scripts/activate
+python - <<'EOF'
+from services.openai_runtime.config import load_config, _S3_BUCKET
+cfg = load_config()
+print(f"Provider : {cfg.active_provider}")
+print(f"S3 bucket: {_S3_BUCKET or '(not set — using local file)'}")
+print(f"Writer   : {cfg.agents['writer'].capability} / max_tokens={cfg.agents['writer'].max_tokens}")
+EOF
+```
+
+### upload_configs.py reference
+
+```
+Usage:  python scripts/upload_configs.py [--bucket BUCKET] [--region REGION]
+
+Uploads:
+  services/openai_runtime/model_config.yaml  →  s3://<bucket>/config/model_config.yaml
+  services/openai_runtime/prompts.yaml       →  s3://<bucket>/config/prompts.yaml
+
+Defaults from .env.local:
+  --bucket  S3_ARTIFACT_BUCKET
+  --region  AWS_REGION
+```
+
+---
+
+## Running the Full Local Pipeline
+
+To run the complete 13-stage pipeline locally (no Step Functions required):
+
+```bash
+source .env.local
+source .venv/Scripts/activate
+
+# Create a new topic + run all stages + auto-approve + publish
+python scripts/run_pipeline_local.py --create-topic --auto-approve
+
+# Resume from a specific stage (for debugging a failed stage)
+python scripts/run_pipeline_local.py \
+  --topic-id <existing_topic_id> \
+  --run-id <existing_run_id> \
+  --start-from DraftChapter
+
+# Use an existing topic but create a new run
+python scripts/run_pipeline_local.py \
+  --topic-id <existing_topic_id> \
+  --auto-approve
+```
+
+> **Note:** The `--start-from` flag skips earlier stages entirely. Only use it for stages
+> that do not do web research (ResearchTopic). Skipping web research reuses whatever
+> evidence is already in the DynamoDB/S3 state from the prior run.
+
+Stages in order:
+```
+LoadTopicConfig → AssembleTopicContext → PlanTopic → ResearchTopic → VerifyEvidence
+→ PersistEvidenceArtifacts → DraftChapter → EditorialReview → BuildDraftArtifact
+→ GenerateDiffReleaseNotes → NotifyAdminForReview → [auto-approve] → PublishTopic
+→ RebuildIndexes
+```
+
+---
+
 ## Running Individual Workers
 
 Workers (Step Functions Lambda tasks) can be invoked directly as Python scripts:

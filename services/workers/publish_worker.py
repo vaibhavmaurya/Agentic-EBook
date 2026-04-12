@@ -34,7 +34,9 @@ from services.workers.base import (
     get_s3_json,
     get_table,
     get_topic_meta,
+    set_run_status,
 )
+from shared_types.models import RunStatus
 from shared_types.tracer import stage_completed, stage_failed, stage_started
 
 _STAGE = "PublishTopic"
@@ -64,6 +66,21 @@ def _copy_markdown(topic_id: str, version: str, content: str) -> str:
         ContentType="text/markdown; charset=utf-8",
     )
     return f"s3://{_S3_BUCKET}/{key}"
+
+
+def _aggregate_run_cost(run_id: str) -> float:
+    """Sum cost_usd from all STAGE_COMPLETED trace events for this run."""
+    from boto3.dynamodb.conditions import Key as _Key
+    resp = get_table().query(
+        KeyConditionExpression=_Key("PK").eq(f"RUN#{run_id}") & _Key("SK").begins_with("EVENT#"),
+    )
+    total = 0.0
+    for ev in resp.get("Items", []):
+        try:
+            total += float(ev.get("cost_usd") or 0)
+        except (TypeError, ValueError):
+            pass
+    return total
 
 
 def publish_topic(
@@ -156,6 +173,20 @@ def publish_topic(
             ":now": now,
             ":curi": content_uri,
         },
+    )
+
+    # Aggregate total cost across all trace events for this run
+    total_cost = _aggregate_run_cost(run_id)
+    content_score = scorecard.get("overall", None)
+
+    # Update RUN record status to APPROVED with cost and score
+    set_run_status(
+        topic_id, run_id, RunStatus.APPROVED,
+        published_version=version,
+        published_at=now,
+        completed_at=now,
+        cost_usd=str(round(total_cost, 6)) if total_cost is not None else "0",
+        **({"content_score": str(round(float(content_score), 2))} if content_score is not None else {}),
     )
 
     stage_completed(

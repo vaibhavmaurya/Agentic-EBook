@@ -33,7 +33,9 @@ from services.workers.base import (
     extract_execution_input,
     get_table,
     get_topic_meta,
+    set_run_status,
 )
+from shared_types.models import RunStatus
 from shared_types.tracer import stage_completed, stage_started
 
 _STAGE_NOTIFY = "NotifyAdminForReview"
@@ -98,6 +100,9 @@ def notify_admin(topic_id: str, run_id: str, task_token: str,
     })
 
     _send_review_email(topic_id, run_id, title)
+
+    # Update RUN record to WAITING_APPROVAL so admin UI shows correct state
+    set_run_status(topic_id, run_id, RunStatus.WAITING_APPROVAL, timeout_at=timeout_at)
 
     stage_completed(run_id, _STAGE_NOTIFY,
                     review_status="PENDING_REVIEW",
@@ -173,6 +178,7 @@ def store_rejection(topic_id: str, run_id: str,
         },
     )
 
+    set_run_status(topic_id, run_id, RunStatus.REJECTED, notes=notes)
     stage_completed(run_id, _STAGE_REJECT, review_status="REJECTED")
     return {"topic_id": topic_id, "run_id": run_id, "review_status": "REJECTED"}
 
@@ -193,21 +199,22 @@ def handler(event: dict, _context: Any) -> dict:
     topic_id = inp["topic_id"]
     run_id = inp["run_id"]
 
-    if "task_token" in event:
-        # NotifyAdminForReview — SFN injects the task token via Parameters mapping
-        build = event.get("build_result", {}).get("body", {})
-        diff = event.get("diff_result", {}).get("body", {})
-        return notify_admin(
+    approval = event.get("approval_result", {})
+    if approval.get("decision") == "reject":
+        # StoreRejection path — explicit reject decision present
+        return store_rejection(
             topic_id, run_id,
-            task_token=event["task_token"],
-            review_artifact_uri=build.get("review_artifact_uri"),
-            diff_summary_uri=diff.get("diff_summary_uri"),
+            notes=approval.get("notes", ""),
+            reviewer=approval.get("reviewer", ""),
         )
 
-    # StoreRejection path
-    approval = event.get("approval_result", {})
-    return store_rejection(
+    # NotifyAdminForReview path — either SFN injected task_token or local mode
+    task_token = event.get("task_token", "LOCAL_TEST_TOKEN")
+    build = event.get("build_result", {}).get("body", {})
+    diff = event.get("diff_result", {}).get("body", {})
+    return notify_admin(
         topic_id, run_id,
-        notes=approval.get("notes", ""),
-        reviewer=approval.get("reviewer", ""),
+        task_token=task_token,
+        review_artifact_uri=build.get("review_artifact_uri"),
+        diff_summary_uri=diff.get("diff_summary_uri"),
     )

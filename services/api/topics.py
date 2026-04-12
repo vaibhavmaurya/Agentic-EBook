@@ -475,6 +475,7 @@ def list_runs(event: dict) -> dict:
             "started_at": item.get("started_at"),
             "completed_at": item.get("completed_at"),
             "cost_usd": str(item.get("cost_usd", "0")),
+            "content_score": str(item.get("content_score", "")) if item.get("content_score") is not None else None,
         }
         for item in items
     ]
@@ -536,6 +537,7 @@ def get_run(event: dict) -> dict:
             "started_at": run_item.get("started_at"),
             "completed_at": run_item.get("completed_at"),
             "cost_usd": str(run_item.get("cost_usd", "0")),
+            "content_score": str(run_item.get("content_score", "")) if run_item.get("content_score") is not None else None,
         },
         "trace_events": trace_events,
         "stage_costs": stage_costs,

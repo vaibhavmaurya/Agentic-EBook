@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from datetime import datetime, timezone
@@ -172,6 +173,9 @@ def rebuild_indexes(topic_id: str, run_id: str) -> dict:
     }
     sitemap_uri = _write_site_file("site/current/sitemap.json", sitemap)
 
+    # ── Trigger Amplify public site rebuild ───────────────────────────────────
+    amplify_job_id = _trigger_amplify_rebuild()
+
     stage_completed(
         run_id, _STAGE,
         index_uri=index_uri,
@@ -185,7 +189,56 @@ def rebuild_indexes(topic_id: str, run_id: str) -> dict:
         "toc_uri": toc_uri,
         "sitemap_uri": sitemap_uri,
         "topic_count": len(lunr_docs),
+        "amplify_job_id": amplify_job_id,
     }
+
+
+def _trigger_amplify_rebuild() -> str | None:
+    """
+    Trigger an Amplify deployment so the static public site picks up the new toc.json.
+
+    Reads AMPLIFY_APP_ID and AMPLIFY_BRANCH from env; skips silently if not set.
+
+    Flow:
+      1. Fetch the pre-built dist zip from S3 (uploaded there by the deploy script).
+      2. CreateDeployment → upload zip → StartDeployment.
+
+    The dist zip is stored at s3://<bucket>/deployments/public-site.zip by
+    scripts/deploy_public_site.sh after each local or CI build.
+    """
+    app_id = os.environ.get("AMPLIFY_APP_ID", "")
+    branch = os.environ.get("AMPLIFY_BRANCH", "dev")
+    if not app_id:
+        print("[search_index_worker] AMPLIFY_APP_ID not set — skipping Amplify rebuild")
+        return None
+    try:
+        import urllib.request
+        import boto3 as _boto3
+        region = os.environ.get("AWS_REGION", "us-east-1")
+        amplify_client = _boto3.client("amplify", region_name=region)
+        s3_client = _boto3.client("s3", region_name=region)
+
+        # Fetch the pre-built zip from S3
+        dist_zip_key = "deployments/public-site.zip"
+        zip_data = s3_client.get_object(Bucket=_S3_BUCKET, Key=dist_zip_key)["Body"].read()
+
+        # Create deployment slot
+        deploy_resp = amplify_client.create_deployment(appId=app_id, branchName=branch)
+        job_id = deploy_resp["jobId"]
+        zip_url = deploy_resp["zipUploadUrl"]
+
+        # Upload zip
+        req = urllib.request.Request(zip_url, data=zip_data, method="PUT")
+        req.add_header("Content-Type", "application/zip")
+        urllib.request.urlopen(req)
+
+        # Start deployment
+        amplify_client.start_deployment(appId=app_id, branchName=branch, jobId=job_id)
+        print(f"[search_index_worker] Amplify deployment started: jobId={job_id}")
+        return job_id
+    except Exception as exc:
+        print(f"[search_index_worker] Amplify rebuild failed (non-fatal): {exc}")
+        return None
 
 
 def handler(event: dict, _context: Any) -> dict:

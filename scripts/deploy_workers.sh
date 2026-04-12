@@ -82,7 +82,9 @@ build_and_deploy() {
         --implementation cp \
         pydantic python-dotenv
 
-    # AI workers also need openai + httpx + pyyaml for the runtime adapter
+    # AI workers also need:
+    #   openai httpx pyyaml — LLM runtime
+    #   duckduckgo-search requests beautifulsoup4 — research tools (web search + URL fetch)
     if is_ai_worker "$worker_name"; then
         pip install \
             --quiet \
@@ -91,7 +93,7 @@ build_and_deploy() {
             --python-version 3.12 \
             --only-binary=:all: \
             --implementation cp \
-            openai httpx pyyaml
+            openai httpx pyyaml ddgs requests beautifulsoup4
     fi
 
     # Copy shared_types package
@@ -104,9 +106,10 @@ build_and_deploy() {
     cp "$REPO_ROOT/services/workers/base.py" "$pkg_dir/services/workers/base.py"
     cp "$REPO_ROOT/services/workers/${worker_name}.py" "$pkg_dir/services/workers/${worker_name}.py"
 
-    # AI workers also need the full openai_runtime module
+    # AI workers also need the full openai_runtime module.
+    # Workers import it as "services.openai_runtime" so it must live at services/openai_runtime/.
     if is_ai_worker "$worker_name"; then
-        cp -r "$REPO_ROOT/services/openai_runtime" "$pkg_dir/openai_runtime"
+        cp -r "$REPO_ROOT/services/openai_runtime" "$pkg_dir/services/openai_runtime"
         # Also copy prompt_policies used by Writer/Editor agents
         if [[ -d "$REPO_ROOT/packages/prompt-policies" ]]; then
             mkdir -p "$pkg_dir/packages/prompt-policies"

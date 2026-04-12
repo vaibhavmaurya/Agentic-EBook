@@ -27,8 +27,10 @@ resource "aws_amplify_app" "public_site" {
   EOT
 
   environment_variables = {
-    VITE_API_ENDPOINT = var.api_endpoint
-    NODE_ENV          = "production"
+    VITE_API_ENDPOINT  = var.api_endpoint
+    NODE_ENV           = "production"
+    S3_ARTIFACT_BUCKET = var.s3_artifact_bucket
+    APP_REGION         = var.region
   }
 
   tags = {

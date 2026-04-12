@@ -127,6 +127,7 @@ export interface RunSummary {
   started_at: string
   completed_at: string | null
   cost_usd: string
+  content_score: string | null
 }
 
 export interface TraceEvent {

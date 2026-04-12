@@ -84,20 +84,26 @@ def _serpapi_search(query: str, num_results: int, api_key: str) -> list[SearchRe
 # ── DuckDuckGo (no API key) ───────────────────────────────────────────────────
 
 def _duckduckgo_search(query: str, num_results: int) -> list[SearchResult]:
-    try:
-        from duckduckgo_search import DDGS
-        with DDGS() as ddgs:
-            raw = list(ddgs.text(query, max_results=num_results))
-        return [
-            SearchResult(
-                title=r.get("title", ""),
-                url=r.get("href", ""),
-                snippet=r.get("body", ""),
-            )
-            for r in raw
-        ]
-    except ImportError:
-        raise RuntimeError(
-            "No web search backend available. Install duckduckgo-search or configure "
-            "bing_secret_name / serpapi_secret_name in model_config.yaml."
-        )
+    # Try new package name first, fall back to old
+    for pkg in ("ddgs", "duckduckgo_search"):
+        try:
+            mod = __import__(pkg, fromlist=["DDGS"])
+            DDGS = mod.DDGS
+            with DDGS() as ddgs:
+                raw = list(ddgs.text(query, max_results=num_results))
+            return [
+                SearchResult(
+                    title=r.get("title", ""),
+                    url=r.get("href", ""),
+                    snippet=r.get("body", ""),
+                )
+                for r in raw
+            ]
+        except ImportError:
+            continue
+        except Exception:
+            continue
+    raise RuntimeError(
+        "No web search backend available. Install ddgs or configure "
+        "bing_secret_name / serpapi_secret_name in model_config.yaml."
+    )

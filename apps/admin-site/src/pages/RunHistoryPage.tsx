@@ -13,6 +13,12 @@ const STATUS_COLORS: Record<RunStatus, string> = {
   TIMED_OUT:        '#6b7280',
 }
 
+function scoreColor(score: number): string {
+  if (score >= 0.8) return '#10b981'
+  if (score >= 0.6) return '#f59e0b'
+  return '#ef4444'
+}
+
 function RunCard({ run, topicId }: { run: RunSummary; topicId: string }) {
   const color = STATUS_COLORS[run.status as RunStatus] ?? '#6b7280'
   const cost = parseFloat(run.cost_usd || '0')
@@ -64,11 +70,21 @@ function RunCard({ run, topicId }: { run: RunSummary; topicId: string }) {
             )}
           </div>
         </div>
-        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>
-            ${cost.toFixed(4)}
+        <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>
+              ${cost.toFixed(4)}
+            </div>
+            <div style={{ fontSize: 12, color: '#9ca3af' }}>cost</div>
           </div>
-          <div style={{ fontSize: 12, color: '#9ca3af' }}>cost</div>
+          {run.content_score && (
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: scoreColor(parseFloat(run.content_score)) }}>
+                {parseFloat(run.content_score).toFixed(2)}
+              </div>
+              <div style={{ fontSize: 12, color: '#9ca3af' }}>content score</div>
+            </div>
+          )}
         </div>
       </div>
     </Link>

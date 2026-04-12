@@ -2,6 +2,12 @@
 Configuration loader for model_config.yaml.
 
 All modules in openai-runtime import from here — never read the YAML directly.
+
+S3 loading:
+  Set MODEL_CONFIG_PATH=s3://bucket/config/model_config.yaml to load from S3.
+  Set PROMPTS_CONFIG_PATH=s3://bucket/config/prompts.yaml to load from S3.
+  If neither is set, the module also checks S3_ARTIFACT_BUCKET/config/<file>
+  before falling back to the bundled YAML files.
 """
 from __future__ import annotations
 
@@ -15,6 +21,43 @@ import yaml
 
 _CONFIG_PATH = Path(__file__).parent / "model_config.yaml"
 _PROMPTS_PATH = Path(__file__).parent / "prompts.yaml"
+_S3_BUCKET = os.environ.get("S3_ARTIFACT_BUCKET", "")
+
+
+def _load_yaml_from_s3(s3_uri: str) -> dict:
+    """Download and parse a YAML file from an s3:// URI."""
+    import boto3
+    rest = s3_uri[5:]
+    bucket, key = rest.split("/", 1)
+    region = os.environ.get("AWS_REGION", os.environ.get("APP_REGION", "us-east-1"))
+    s3 = boto3.client("s3", region_name=region)
+    resp = s3.get_object(Bucket=bucket, Key=key)
+    return yaml.safe_load(resp["Body"].read())
+
+
+def _load_yaml(default_local_path: Path, env_var: str, s3_config_key: str) -> dict:
+    """
+    Load a YAML config file with priority:
+      1. Explicit env var (supports s3:// URI or local path)
+      2. S3_ARTIFACT_BUCKET/config/<s3_config_key>  (if bucket env var is set)
+      3. Bundled local file (default_local_path)
+    """
+    explicit = os.environ.get(env_var, "")
+    if explicit:
+        if explicit.startswith("s3://"):
+            return _load_yaml_from_s3(explicit)
+        with open(explicit) as f:
+            return yaml.safe_load(f)
+
+    if _S3_BUCKET:
+        s3_uri = f"s3://{_S3_BUCKET}/config/{s3_config_key}"
+        try:
+            return _load_yaml_from_s3(s3_uri)
+        except Exception:
+            pass  # fall through to bundled file
+
+    with open(default_local_path) as f:
+        return yaml.safe_load(f)
 
 
 # ── Typed config dataclasses ──────────────────────────────────────────────────
@@ -89,10 +132,8 @@ class ModelConfig:
 # ── Loader ────────────────────────────────────────────────────────────────────
 
 def _load_raw() -> dict:
-    """Load model_config.yaml, with optional override from YAML_CONFIG_PATH env var."""
-    path = os.environ.get("MODEL_CONFIG_PATH", str(_CONFIG_PATH))
-    with open(path) as f:
-        return yaml.safe_load(f)
+    """Load model_config.yaml from S3 or local file."""
+    return _load_yaml(_CONFIG_PATH, "MODEL_CONFIG_PATH", "model_config.yaml")
 
 
 @lru_cache(maxsize=1)
@@ -164,10 +205,8 @@ def resolve_model(agent_name: str) -> str:
 
 @lru_cache(maxsize=1)
 def _load_prompts() -> dict:
-    """Load prompts.yaml, with optional override from PROMPTS_CONFIG_PATH env var."""
-    path = os.environ.get("PROMPTS_CONFIG_PATH", str(_PROMPTS_PATH))
-    with open(path) as f:
-        return yaml.safe_load(f)
+    """Load prompts.yaml from S3 or local file."""
+    return _load_yaml(_PROMPTS_PATH, "PROMPTS_CONFIG_PATH", "prompts.yaml")
 
 
 def get_prompt(agent: str, key: str) -> str:
