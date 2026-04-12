@@ -5,6 +5,7 @@ export type RunStatus =
   | 'RUNNING'
   | 'WAITING_APPROVAL'
   | 'APPROVED'
+  | 'PUBLISHED'
   | 'REJECTED'
   | 'FAILED'
   | 'TIMED_OUT'

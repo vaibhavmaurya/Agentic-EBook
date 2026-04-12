@@ -29,6 +29,7 @@ function statusBadge(status: RunStatus | undefined) {
     RUNNING:          'badge-warning',
     WAITING_APPROVAL: 'badge-pending',
     APPROVED:         'badge-success',
+    PUBLISHED:        'badge-success',
     REJECTED:         'badge-danger',
     FAILED:           'badge-danger',
     TIMED_OUT:        'badge-warning',

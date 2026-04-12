@@ -179,9 +179,9 @@ def publish_topic(
     total_cost = _aggregate_run_cost(run_id)
     content_score = scorecard.get("overall", None)
 
-    # Update RUN record status to APPROVED with cost and score
+    # Update RUN record status to PUBLISHED with cost and score
     set_run_status(
-        topic_id, run_id, RunStatus.APPROVED,
+        topic_id, run_id, RunStatus.PUBLISHED,
         published_version=version,
         published_at=now,
         completed_at=now,

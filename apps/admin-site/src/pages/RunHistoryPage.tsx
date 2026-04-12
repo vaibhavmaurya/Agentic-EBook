@@ -8,6 +8,7 @@ const STATUS_COLORS: Record<RunStatus, string> = {
   RUNNING:          '#3b82f6',
   WAITING_APPROVAL: '#8b5cf6',
   APPROVED:         '#10b981',
+  PUBLISHED:        '#059669',
   REJECTED:         '#ef4444',
   FAILED:           '#ef4444',
   TIMED_OUT:        '#6b7280',
