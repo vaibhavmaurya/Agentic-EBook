@@ -1,0 +1,27 @@
+{
+  "name": "ebook",
+  "version": "1.0.0",
+  "description": "An AI-powered publishing platform where autonomous agents research, draft, and stage web-based ebook content on a per-topic basis. A human administrator reviews every draft before it is published — no AI content goes live without approval.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vaibhavmaurya/Agentic-EBook.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/vaibhavmaurya/Agentic-EBook/issues"
+  },
+  "homepage": "https://github.com/vaibhavmaurya/Agentic-EBook#readme",
+  "dependencies": {
+    "playwright": "^1.59.1"
+  }
+}

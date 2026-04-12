@@ -6,6 +6,7 @@ packages/shared_types/
 # =============================================================================
 .env.local
 .env
+.env.production
 *.pem
 *.key
 secrets/
@@ -74,6 +75,7 @@ out/
 *.tfstate.*
 *.tfstate.backup
 *.tfplan
+tfplan
 terraform.tfvars
 terraform.tfvars.json
 !terraform.tfvars.example
