@@ -194,14 +194,14 @@ def list_topics(event: dict) -> dict:
     result = []
     for t in topics:
         topic_id = t["topic_id"]
-        runs = _table().query(
+        all_runs = _table().query(
             KeyConditionExpression=Key("PK").eq(f"TOPIC#{topic_id}") & Key("SK").begins_with("RUN#"),
-            ScanIndexForward=False,
-            Limit=1,
         ).get("Items", [])
         last_run = None
-        if runs:
-            r = runs[0]
+        if all_runs:
+            # Sort by started_at descending (UUIDs are not time-ordered, so SK sort is unreliable)
+            all_runs.sort(key=lambda r: r.get("started_at") or "", reverse=True)
+            r = all_runs[0]
             last_run = {
                 "run_id": r.get("run_id"),
                 "status": r.get("status"),
@@ -265,15 +265,14 @@ def get_topic(event: dict) -> dict:
     if not item or not item.get("active", True):
         return _err("TOPIC_NOT_FOUND", f"Topic {topic_id} does not exist.", 404)
 
-    # Last run summary
-    runs = _table().query(
+    # Last run summary — sort by started_at (UUIDs are not time-ordered)
+    all_runs = _table().query(
         KeyConditionExpression=Key("PK").eq(f"TOPIC#{topic_id}") & Key("SK").begins_with("RUN#"),
-        ScanIndexForward=False,
-        Limit=1,
     ).get("Items", [])
     last_run = None
-    if runs:
-        r = runs[0]
+    if all_runs:
+        all_runs.sort(key=lambda r: r.get("started_at") or "", reverse=True)
+        r = all_runs[0]
         last_run = {
             "run_id": r.get("run_id"),
             "status": r.get("status"),

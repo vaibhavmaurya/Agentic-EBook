@@ -220,15 +220,23 @@ def _handle_submit_review(event: dict, topic_id: str, run_id: str) -> dict:
     sfn = _sfn()
 
     if decision == "approve":
-        sfn.send_task_success(
-            taskToken=task_token,
-            output=json.dumps({
-                "decision": "approve",
-                "notes": notes,
-                "reviewer": reviewer,
-                "decided_at": now,
-            }),
-        )
+        try:
+            sfn.send_task_success(
+                taskToken=task_token,
+                output=json.dumps({
+                    "decision": "approve",
+                    "notes": notes,
+                    "reviewer": reviewer,
+                    "decided_at": now,
+                }),
+            )
+        except Exception as exc:
+            err_str = str(exc)
+            if "TaskTimedOut" in err_str or "InvalidToken" in err_str or "TaskDoesNotExist" in err_str:
+                return _err("TASK_EXPIRED",
+                            "The pipeline execution has expired or been cancelled. "
+                            "Please trigger a new run for this topic.", 409)
+            raise
         new_status = "APPROVED"
         update_expr = (
             "SET review_status = :s, REVIEW_STATUS = :rskey, "
@@ -243,11 +251,19 @@ def _handle_submit_review(event: dict, topic_id: str, run_id: str) -> dict:
             ":reviewer": reviewer,
         }
     else:
-        sfn.send_task_failure(
-            taskToken=task_token,
-            error="ReviewRejected",
-            cause=json.dumps({"notes": notes, "reviewer": reviewer}),
-        )
+        try:
+            sfn.send_task_failure(
+                taskToken=task_token,
+                error="ReviewRejected",
+                cause=json.dumps({"notes": notes, "reviewer": reviewer}),
+            )
+        except Exception as exc:
+            err_str = str(exc)
+            if "TaskTimedOut" in err_str or "InvalidToken" in err_str or "TaskDoesNotExist" in err_str:
+                return _err("TASK_EXPIRED",
+                            "The pipeline execution has expired or been cancelled. "
+                            "Please trigger a new run for this topic.", 409)
+            raise
         new_status = "REJECTED"
         update_expr = (
             "SET review_status = :s, REVIEW_STATUS = :rskey, "
