@@ -44,12 +44,14 @@ function TopicRow({
   onDelete,
   onTrigger,
   triggering,
+  deleting,
 }: {
   topic: TopicListItem
   onEdit: () => void
   onDelete: () => void
   onTrigger: () => void
   triggering: boolean
+  deleting: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: topic.topic_id })
@@ -57,8 +59,10 @@ function TopicRow({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging || deleting ? 0.5 : 1,
   }
+
+  const busy = triggering || deleting
 
   return (
     <div ref={setNodeRef} style={style} className={`card ${styles.row}`}>
@@ -73,26 +77,31 @@ function TopicRow({
 
       <div className={styles.rowMeta}>
         <span className={styles.scheduleTag}>{topic.schedule_type}</span>
-        {statusBadge(topic.last_run?.status)}
+        {deleting
+          ? <span className="badge badge-warning">Deleting…</span>
+          : statusBadge(topic.last_run?.status)
+        }
       </div>
 
       <div className={styles.rowActions}>
-        <button className="btn-secondary" onClick={onEdit}>Edit</button>
+        <button className="btn-secondary" onClick={onEdit} disabled={busy}>Edit</button>
         <Link
           to={`/topics/${topic.topic_id}/runs`}
           className="btn-secondary"
-          style={{ textDecoration: 'none', display: 'inline-block' }}
+          style={{ textDecoration: 'none', display: 'inline-block', pointerEvents: busy ? 'none' : 'auto', opacity: busy ? 0.5 : 1 }}
         >
           Runs
         </Link>
         <button
           className="btn-primary"
           onClick={onTrigger}
-          disabled={triggering}
+          disabled={busy}
         >
           {triggering ? <span className="spin" /> : 'Run'}
         </button>
-        <button className="btn-danger" onClick={onDelete}>Delete</button>
+        <button className="btn-danger" onClick={onDelete} disabled={busy}>
+          {deleting ? <span className="spin" /> : 'Delete'}
+        </button>
       </div>
     </div>
   )
@@ -105,6 +114,7 @@ export default function TopicListPage() {
   const qc = useQueryClient()
   const [triggeringId, setTriggeringId] = useState<string | null>(null)
   const [triggerMsg, setTriggerMsg] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const { data: topics = [], isLoading, error } = useQuery({
     queryKey: ['topics'],
@@ -117,7 +127,11 @@ export default function TopicListPage() {
 
   const deleteMutation = useMutation({
     mutationFn: topicsApi.delete,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['topics'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['topics'] })
+      setDeletingId(null)
+    },
+    onError: () => setDeletingId(null),
   })
 
   const reorderMutation = useMutation({
@@ -154,7 +168,8 @@ export default function TopicListPage() {
   }
 
   const handleDelete = (topicId: string, title: string) => {
-    if (!confirm(`Delete topic "${title}"? This cannot be undone.`)) return
+    if (!confirm(`Delete topic "${title}"?\n\nThis will remove all published content from the public site and cannot be undone.`)) return
+    setDeletingId(topicId)
     deleteMutation.mutate(topicId)
   }
 
@@ -198,6 +213,7 @@ export default function TopicListPage() {
                   onDelete={() => handleDelete(topic.topic_id, topic.title)}
                   onTrigger={() => handleTrigger(topic.topic_id)}
                   triggering={triggeringId === topic.topic_id}
+                  deleting={deletingId === topic.topic_id}
                 />
               ))}
             </div>

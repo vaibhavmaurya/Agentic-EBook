@@ -10,3 +10,12 @@ variable "state_machine_arn"   { type = string }
 variable "api_lambda_role_arn"    { type = string }
 variable "worker_lambda_role_arn" { type = string }
 variable "digest_lambda_role_arn" { type = string }
+
+variable "amplify_public_app_id" {
+  type    = string
+  default = ""
+}
+variable "amplify_branch" {
+  type    = string
+  default = "dev"
+}

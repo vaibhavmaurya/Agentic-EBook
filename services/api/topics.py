@@ -39,10 +39,15 @@ from shared_types.tracer import run_triggered, topic_event
 _TABLE_NAME = os.environ["DYNAMODB_TABLE_NAME"]
 _SFN_ARN = os.environ["STEP_FUNCTIONS_ARN"]
 _AWS_REGION = os.environ.get("AWS_REGION_NAME", "us-east-1")
+_S3_BUCKET = os.environ.get("S3_ARTIFACT_BUCKET", "")
 
 
 def _table():
     return boto3.resource("dynamodb", region_name=_AWS_REGION).Table(_TABLE_NAME)
+
+
+def _s3():
+    return boto3.client("s3", region_name=_AWS_REGION)
 
 
 def _sfn():
@@ -357,6 +362,100 @@ def update_topic(event: dict) -> dict:
     return _ok({"topic_id": topic_id, "updated_at": now})
 
 
+def _delete_s3_prefix(prefix: str) -> int:
+    """Delete all S3 objects under a given key prefix. Returns count deleted."""
+    if not _S3_BUCKET:
+        return 0
+    s3 = _s3()
+    deleted = 0
+    paginator = s3.get_paginator("list_objects_v2")
+    for page in paginator.paginate(Bucket=_S3_BUCKET, Prefix=prefix):
+        objects = page.get("Contents", [])
+        if not objects:
+            continue
+        s3.delete_objects(
+            Bucket=_S3_BUCKET,
+            Delete={"Objects": [{"Key": o["Key"]} for o in objects]},
+        )
+        deleted += len(objects)
+    return deleted
+
+
+def _rebuild_site_indexes_without(topic_id: str) -> None:
+    """
+    Rebuild toc.json, search/index.json, and sitemap.json excluding the deleted topic.
+    Triggers an Amplify redeploy so the public site reflects the removal immediately.
+    """
+    if not _S3_BUCKET:
+        return
+    import re
+    import urllib.request
+    from datetime import datetime, timezone
+
+    s3 = _s3()
+    now = datetime.now(timezone.utc).isoformat()
+
+    def _get_json(key: str) -> Any:
+        try:
+            resp = s3.get_object(Bucket=_S3_BUCKET, Key=key)
+            return json.loads(resp["Body"].read())
+        except Exception:
+            return {}
+
+    def _put_json(key: str, data: Any) -> None:
+        s3.put_object(
+            Bucket=_S3_BUCKET,
+            Key=key,
+            Body=json.dumps(data, default=str).encode(),
+            ContentType="application/json",
+        )
+
+    # Load existing toc and filter out the deleted topic
+    toc = _get_json("site/current/toc.json")
+    topics = [t for t in toc.get("topics", []) if t.get("topic_id") != topic_id]
+
+    # Rebuild toc.json
+    _put_json("site/current/toc.json", {
+        "generated_at": now,
+        "topic_count": len(topics),
+        "topics": topics,
+    })
+
+    # Rebuild search index
+    search = _get_json("site/current/search/index.json")
+    docs = [d for d in search.get("documents", []) if d.get("id") != topic_id]
+    _put_json("site/current/search/index.json", {
+        "generated_at": now,
+        "topic_count": len(docs),
+        "documents": docs,
+    })
+
+    # Rebuild sitemap
+    sitemap = _get_json("site/current/sitemap.json")
+    sitemap_topics = [t for t in sitemap.get("topics", []) if t.get("topic_id") != topic_id]
+    _put_json("site/current/sitemap.json", {
+        "generated_at": now,
+        "topics": sitemap_topics,
+    })
+
+    # Trigger Amplify redeploy using the pre-built zip
+    app_id = os.environ.get("AMPLIFY_APP_ID", "")
+    branch = os.environ.get("AMPLIFY_BRANCH", "dev")
+    if not app_id:
+        return
+    try:
+        dist_zip = s3.get_object(Bucket=_S3_BUCKET, Key="deployments/public-site.zip")["Body"].read()
+        amplify = boto3.client("amplify", region_name=_AWS_REGION)
+        resp = amplify.create_deployment(appId=app_id, branchName=branch)
+        req = urllib.request.Request(resp["zipUploadUrl"], data=dist_zip, method="PUT")
+        req.add_header("Content-Type", "application/zip")
+        urllib.request.urlopen(req)
+        amplify.start_deployment(appId=app_id, branchName=branch, jobId=resp["jobId"])
+        print(f"[delete_topic] Amplify redeploy triggered: jobId={resp['jobId']}")
+    except Exception as exc:
+        print(f"[delete_topic] Amplify redeploy failed (non-fatal): {exc}")
+
+
 def delete_topic(event: dict) -> dict:
     topic_id = event["pathParameters"]["topicId"]
     item = _get_topic_meta(topic_id)
@@ -364,16 +463,31 @@ def delete_topic(event: dict) -> dict:
         return _err("TOPIC_NOT_FOUND", f"Topic {topic_id} does not exist.", 404)
 
     now = utc_now()
+
+    # 1. Soft-delete the DynamoDB META record
     _table().update_item(
         Key={"PK": f"TOPIC#{topic_id}", "SK": "META"},
         UpdateExpression="SET active = :f, updated_at = :now",
         ExpressionAttributeValues={":f": False, ":now": now},
     )
 
+    # 2. Cancel the EventBridge schedule
     _delete_schedule(topic_id)
+
+    # 3. Delete all published S3 artifacts for this topic
+    published_deleted = _delete_s3_prefix(f"published/topics/{topic_id}/")
+    print(f"[delete_topic] Deleted {published_deleted} published S3 objects for {topic_id}")
+
+    # 4. Rebuild site indexes (toc.json, search index, sitemap) excluding this topic,
+    #    then trigger an Amplify redeploy so the public site reflects the removal.
+    try:
+        _rebuild_site_indexes_without(topic_id)
+    except Exception as exc:
+        print(f"[delete_topic] Index rebuild failed (non-fatal): {exc}")
+
     topic_event(topic_id, "TOPIC_DELETED", topic_id)
 
-    return _ok({"topic_id": topic_id, "active": False})
+    return _ok({"topic_id": topic_id, "active": False, "published_objects_deleted": published_deleted})
 
 
 def reorder_topics(event: dict) -> dict:

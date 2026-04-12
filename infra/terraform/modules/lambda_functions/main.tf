@@ -9,6 +9,8 @@ locals {
     STEP_FUNCTIONS_ARN  = var.state_machine_arn
     AWS_REGION_NAME     = var.aws_region
     ENV                 = var.env
+    AMPLIFY_APP_ID      = var.amplify_public_app_id
+    AMPLIFY_BRANCH      = var.amplify_branch
   }
 
   # Pipeline worker function definitions: name → handler file (relative to skeleton/)

@@ -123,6 +123,9 @@ module "lambda_functions" {
   api_lambda_role_arn    = module.iam.api_lambda_role_arn
   worker_lambda_role_arn = module.iam.worker_lambda_role_arn
   digest_lambda_role_arn = module.iam.digest_lambda_role_arn
+
+  amplify_public_app_id = module.amplify_public_site.app_id
+  amplify_branch        = var.env
 }
 
 ###############################################################################
@@ -228,9 +231,11 @@ module "monitoring" {
 module "amplify_public_site" {
   source = "../../modules/amplify_public_site"
 
-  env          = var.env
-  project      = var.project
-  api_endpoint = module.api_gateway.api_endpoint
+  env                = var.env
+  project            = var.project
+  api_endpoint       = module.api_gateway.api_endpoint
+  s3_artifact_bucket = module.s3_artifacts.bucket_name
+  region             = var.aws_region
 }
 
 module "amplify_admin_site" {
