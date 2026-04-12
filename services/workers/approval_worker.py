@@ -190,16 +190,27 @@ def handler(event: dict, _context: Any) -> dict:
     Dispatches to notify_admin or store_rejection based on event shape.
 
     NotifyAdminForReview state passes:
-      { "task_token": "<sfn task token>", ...execution context... }
+      "Payload.$": "$"  →  event = full accumulated state (topic_id at top level)
+
+    WaitForApproval state (waitForTaskToken) passes:
+      {"task_token": "<token>", "input": {...full state...}}
 
     StoreRejection state passes:
-      { "approval_decision": "reject", "notes": "...", "reviewer": "...", ...context... }
+      "Payload.$": "$"  →  event = full accumulated state with approval_result
     """
-    inp = extract_execution_input(event)
+    # WaitForApproval wraps the state under "input" and injects task_token
+    if "input" in event and "task_token" in event:
+        state = event["input"]
+        task_token = event["task_token"]
+    else:
+        state = event
+        task_token = "LOCAL_TEST_TOKEN"
+
+    inp = extract_execution_input(state)
     topic_id = inp["topic_id"]
     run_id = inp["run_id"]
 
-    approval = event.get("approval_result", {})
+    approval = state.get("approval_result", {})
     if approval.get("decision") == "reject":
         # StoreRejection path — explicit reject decision present
         return store_rejection(
@@ -208,10 +219,9 @@ def handler(event: dict, _context: Any) -> dict:
             reviewer=approval.get("reviewer", ""),
         )
 
-    # NotifyAdminForReview path — either SFN injected task_token or local mode
-    task_token = event.get("task_token", "LOCAL_TEST_TOKEN")
-    build = event.get("build_result", {}).get("body", {})
-    diff = event.get("diff_result", {}).get("body", {})
+    # NotifyAdminForReview path
+    build = state.get("build_result", {}).get("body", {})
+    diff = state.get("diff_result", {}).get("body", {})
     return notify_admin(
         topic_id, run_id,
         task_token=task_token,

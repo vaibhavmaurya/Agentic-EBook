@@ -64,6 +64,9 @@ data "aws_iam_policy_document" "api_lambda" {
     actions = [
       "states:StartExecution",
       "states:DescribeExecution",
+      "states:SendTaskSuccess",
+      "states:SendTaskFailure",
+      "states:SendTaskHeartbeat",
     ]
     resources = [var.state_machine_arn]
   }
@@ -171,6 +174,18 @@ data "aws_iam_policy_document" "worker_lambda" {
     effect = "Allow"
     actions = ["ses:SendEmail", "ses:SendRawEmail"]
     resources = ["arn:aws:ses:${var.aws_region}:${var.aws_account_id}:identity/${var.ses_sender_email}"]
+  }
+
+  statement {
+    sid    = "AmplifyDeploy"
+    effect = "Allow"
+    actions = [
+      "amplify:CreateDeployment",
+      "amplify:StartDeployment",
+      "amplify:GetDeployment",
+      "amplify:GetJob",
+    ]
+    resources = ["*"]
   }
 
   statement {

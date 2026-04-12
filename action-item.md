@@ -7,23 +7,27 @@
 
 ## ▶ RESUME HERE
 
-**Session ended:** 2026-04-10
-**Last completed:** M7 COMPLETE — Public Astro site fully built: `astro.config.mjs`, `Base.astro` layout, `index.astro` (TOC), `topics/[slug].astro` (chapter + comment/highlight widget), `search.astro` (Lunr.js), `releases.astro`. `lib/s3.ts` + `lib/types.ts`. `services/api/public.py` fully implemented (POST /public/comments, POST /public/highlights, GET /public/releases/latest). `local_dev_server.py` already had public routes wired. `tslib` dependency added. `npm run build` passes — 3 pages, 0 errors.
-**Next action:** **END-TO-END TESTING** — All milestones M1-M10 complete. Run the full test harness: `cd notebooks && jupyter notebook ebook_platform_test_harness.ipynb`, execute cells 0-17 in order. Fix any assertion failures. Then run `terraform apply` to deploy the weekly digest schedule change (M9 adds `aws_scheduler_schedule.weekly_digest` + `aws_lambda_permission`).
+**Session ended:** 2026-04-12
+**Last completed:** Full end-to-end pipeline verified in AWS — trigger → pipeline → WaitForApproval → approve → PublishTopic → RebuildIndexes → SUCCEEDED. Multiple bugs fixed (see session log). Run 201787be published v001 to S3 successfully. Amplify IAM permission fix applied (worker role needs amplify:CreateDeployment/StartDeployment). Second run 12ecb066 triggered to verify Amplify auto-redeploy after publish.
 
-### Remaining: End-to-End Test Run
+**Next action:** Confirm second run (12ecb066) reaches WaitForApproval, approve it via admin UI, verify Amplify job 14 triggers and public site shows content. Then run `terraform apply` to persist IAM changes to Terraform state.
 
-1. [ ] Run `terraform apply` to deploy M9 Terraform changes (weekly digest schedule)
-2. [ ] Execute notebook cells 0-17 against dev AWS account
-3. [ ] Fix any assertion failures
-4. [ ] Run PURGE cell (cell 17) to clean up test data
+### Remaining: End-to-End Verification + Terraform Sync
 
-### M6 Incremental Publishing:
+1. [ ] Approve run 12ecb066 via admin UI (topic: aa6b9f6a, run: 12ecb066)  
+2. [ ] Verify Amplify public site deployment triggers (new job > 13)
+3. [ ] Confirm public site URL shows the published topic
+4. [ ] `terraform apply` to persist IAM changes: `infra/terraform/envs/dev/`
+5. [ ] Re-verify SES email for vaibhavmaurya1986@gmail.com (re-sent verification email this session)
 
-1. [x] **M6-S1:** `publish_worker.py` — content.md + manifest.json → `published/topics/<id>/v<NNN>/`, PUBLISHED# DDB record, META update
-2. [x] **M6-S2:** `search_index_worker.py` — Lunr.js documents list → `site/current/search/index.json`, toc.json, sitemap.json
-3. [x] **M6-S3:** SFN ASL already had PublishTopic → RebuildIndexes wired from M1
-4. [ ] **M6-S4:** Deploy and test end-to-end: trigger → approve → verify published S3 prefix + index rebuilt
+### Bugs fixed this session (2026-04-12):
+
+- **approval_worker KeyError: 'topic_id'** — WaitForApproval wraps state as `{"task_token":..., "input":{...}}`. Handler now unwraps correctly.
+- **API Lambda missing SendTaskSuccess/Failure IAM** — Added `states:SendTaskSuccess/Failure` to `api-lambda-policy` (Terraform + AWS CLI).
+- **Worker Lambda missing Amplify IAM** — Added `amplify:CreateDeployment/StartDeployment` to worker role (Terraform + AWS CLI).
+- **LLM config API returning empty {}** — `config_api.py` fallback path used `_HERE.parent / "openai_runtime"` which resolves to `/openai_runtime` in Lambda. Fixed to check `_HERE / "openai_runtime"` first (Lambda path).
+- **Default config not in S3** — Uploaded `model_config.yaml` + `prompts.yaml` to `s3://.../config/` so UI shows populated forms.
+- **SES verification failed** — Re-sent verification email to vaibhavmaurya1986@gmail.com.
 
 ---
 

@@ -30,10 +30,13 @@ _AWS_REGION = os.environ.get("AWS_REGION_NAME", "us-east-1")
 _S3_MODELS_KEY = "config/model_config.yaml"
 _S3_PROMPTS_KEY = "config/prompts.yaml"
 
-# Paths to the bundled fallback YAML files (relative to this file when deployed,
-# resolved dynamically so they work both locally and in Lambda).
+# Paths to the bundled fallback YAML files.
+# In Lambda: config_api.py is at /var/task/, openai_runtime/ is a sibling dir.
+# Locally: config_api.py is at services/api/, openai_runtime/ is at services/openai_runtime/.
 _HERE = Path(__file__).parent
-_OPENAI_RUNTIME_DIR = _HERE.parent / "openai_runtime"
+_LAMBDA_RUNTIME_DIR = _HERE / "openai_runtime"       # Lambda: /var/task/openai_runtime/
+_LOCAL_RUNTIME_DIR = _HERE.parent / "openai_runtime"  # Local:  services/openai_runtime/
+_OPENAI_RUNTIME_DIR = _LAMBDA_RUNTIME_DIR if _LAMBDA_RUNTIME_DIR.exists() else _LOCAL_RUNTIME_DIR
 _LOCAL_MODELS_PATH = _OPENAI_RUNTIME_DIR / "model_config.yaml"
 _LOCAL_PROMPTS_PATH = _OPENAI_RUNTIME_DIR / "prompts.yaml"
 
