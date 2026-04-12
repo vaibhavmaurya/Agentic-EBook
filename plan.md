@@ -1,7 +1,7 @@
 # Phase 1 MVP Plan — Agentic Ebook Platform V3
 
 > **Living document.** Update this file whenever scope, architecture, or sequencing decisions change.
-> Last updated: 2026-04-10
+> Last updated: 2026-04-12
 
 ---
 
@@ -34,7 +34,7 @@ The Agentic Ebook Platform V3 is a dynamic, per-topic publishing system that use
 
 | Layer | Technology | Rationale |
 |---|---|---|
-| Public site | Astro (static export) on AWS Amplify Hosting | SEO-friendly, static delivery, zero servers |
+| Public site | Astro (static shell) on AWS Amplify Hosting | Deployed once; content fetched from public API at runtime — no rebuild on publish |
 | Admin UI | React + Vite SPA on AWS Amplify Hosting | Simple management console |
 | Authentication | Amazon Cognito user pool | Admin JWT issuance, API Gateway JWT authorizer |
 | API layer | API Gateway HTTP API + AWS Lambda (Python) | Serverless, lightweight routing |
@@ -344,14 +344,24 @@ Every stage emits `STAGE_STARTED`, `STAGE_COMPLETED`, `STAGE_FAILED` trace event
 
 ---
 
-### Milestone 7 — Public Website (Week 12–13)
-**Astro static site:** TOC home, per-topic chapter pages, search page, release notes page
+### Milestone 7 — Public Website (Week 12–13) ✅
+**Astro static shell:** TOC home (`index.astro`), runtime topic viewer (`topic.astro` — reads `?id=` param), search page, release notes page
 
-**Features:** chapter/section navigation sidebar, version badge per topic, Lunr.js client-side search, text highlight+comment widget, release notes page
+**Architecture (updated 2026-04-12):** Static shell deployed once to Amplify. All content fetched from the public API at runtime in the browser — no site rebuild required after each topic publish. `topic.astro` replaces the old `[slug].astro` (which required build-time `getStaticPaths()`).
 
-**Public API handlers:** `services/api/public.py` — POST `/public/comments`, POST `/public/highlights`, GET `/public/releases/latest`
+**Features:** chapter/section navigation sidebar, version badge per topic, Lunr.js client-side search (index fetched at runtime), text highlight+comment widget, release notes page
+
+**Public API handlers:** `services/api/public.py`:
+- `GET /public/toc` — table of contents from S3
+- `GET /public/topics/{topicId}` — topic content + manifest from S3
+- `GET /public/search-index` — Lunr.js index from S3
+- `GET /public/releases/latest` — recent publishes from DynamoDB
+- `POST /public/comments` — store reader comment
+- `POST /public/highlights` — store text highlight
 
 **Abuse controls:** input length limits, rate limiting at API GW, `moderation_status` flag
+
+**Live URL:** https://dev.djcvgu9ysuar.amplifyapp.com
 
 ---
 
@@ -509,11 +519,13 @@ All `topic_id`, `run_id`, `execution_arn` values are tracked in a `created_resou
 - [ ] `site/current/search/index.json` rebuilt
 - [ ] `site/current/toc.json` updated
 
-### Public Site (Milestone 7)
-- [ ] Topic pages render on Amplify public URL
-- [ ] Lunr search returns results for known keyword
-- [ ] Comment/highlight widget submits → DynamoDB FEEDBACK item created
-- [ ] `/admin/*` returns 401 for unauthenticated requests
+### Public Site (Milestone 7) ✅
+- [x] Topic pages render on Amplify public URL (https://dev.djcvgu9ysuar.amplifyapp.com)
+- [x] Lunr search returns results for known keyword (index fetched at runtime from /public/search-index)
+- [x] Comment/highlight widget submits → DynamoDB FEEDBACK item created
+- [x] `/admin/*` returns 401 for unauthenticated requests
+- [x] New topics appear without site rebuild — runtime API fetching architecture
+- [x] GET /public/toc, /public/topics/{id}, /public/search-index, /public/releases/latest all operational
 
 ### Digest (Milestone 9)
 - [ ] Weekly EventBridge schedule triggers `digest_worker`

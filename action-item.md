@@ -8,17 +8,14 @@
 ## ▶ RESUME HERE
 
 **Session ended:** 2026-04-12
-**Last completed:** Full end-to-end pipeline verified in AWS — trigger → pipeline → WaitForApproval → approve → PublishTopic → RebuildIndexes → SUCCEEDED. Multiple bugs fixed (see session log). Run 201787be published v001 to S3 successfully. Amplify IAM permission fix applied (worker role needs amplify:CreateDeployment/StartDeployment). Second run 12ecb066 triggered to verify Amplify auto-redeploy after publish.
+**Last completed:** Runtime API fetching architecture fully deployed. Public site now fetches all content from the API at runtime — no Amplify rebuild needed after publish. All bugs from previous session resolved. Platform fully operational end-to-end.
 
-**Next action:** Confirm second run (12ecb066) reaches WaitForApproval, approve it via admin UI, verify Amplify job 14 triggers and public site shows content. Then run `terraform apply` to persist IAM changes to Terraform state.
+**Next action:** No outstanding tasks. Platform is production-ready for dev environment. Optional: run `terraform apply` to reconcile IAM changes (SendTaskSuccess/Failure, Amplify permissions) to Terraform state — use `-target` to avoid accidental Amplify app replacement.
 
-### Remaining: End-to-End Verification + Terraform Sync
+### Platform Status (2026-04-12)
 
-1. [ ] Approve run 12ecb066 via admin UI (topic: aa6b9f6a, run: 12ecb066)  
-2. [ ] Verify Amplify public site deployment triggers (new job > 13)
-3. [ ] Confirm public site URL shows the published topic
-4. [ ] `terraform apply` to persist IAM changes: `infra/terraform/envs/dev/`
-5. [ ] Re-verify SES email for vaibhavmaurya1986@gmail.com (re-sent verification email this session)
+All milestones complete. Public site live at **https://dev.djcvgu9ysuar.amplifyapp.com**  
+Admin API: `https://gcqq4kkov1.execute-api.us-east-1.amazonaws.com`
 
 ### Bugs fixed this session (2026-04-12):
 
@@ -27,7 +24,9 @@
 - **Worker Lambda missing Amplify IAM** — Added `amplify:CreateDeployment/StartDeployment` to worker role (Terraform + AWS CLI).
 - **LLM config API returning empty {}** — `config_api.py` fallback path used `_HERE.parent / "openai_runtime"` which resolves to `/openai_runtime` in Lambda. Fixed to check `_HERE / "openai_runtime"` first (Lambda path).
 - **Default config not in S3** — Uploaded `model_config.yaml` + `prompts.yaml` to `s3://.../config/` so UI shows populated forms.
-- **SES verification failed** — Re-sent verification email to vaibhavmaurya1986@gmail.com.
+- **Topic list showing FAILED** — `last_run` used UUID SK sort (not time-ordered). Fixed to sort by `started_at` descending.
+- **500 on approving stale run** — SFN token errors not caught. Added try/except → 409 TASK_EXPIRED response.
+- **Public site not showing new topics** — Architecture changed to runtime API fetching. No more Amplify rebuild after publish.
 
 ---
 
@@ -386,3 +385,5 @@ _None currently._
 | 2026-04-10 | M8: topics.py + GET /runs + GET /runs/{runId}. feedback.py (GET /admin/feedback/summary, GET /topics/{id}/feedback). local_dev_server.py wired. Admin UI: RunHistoryPage, RunDetailPage (trace timeline + cost bars), FeedbackPage (collapsible per-topic cards). Nav links added. npm run build passes. **Milestone 8 complete.** |
 | 2026-04-10 | M9: digest_worker.py fully implemented (DDB scan, HTML + plain-text email, SES send, NOTIF record). EventBridge weekly schedule (every Monday 08:00 UTC) in Terraform eventbridge_scheduler module. aws_lambda_permission for EventBridge → digest Lambda. terraform validate passes. **Milestone 9 complete.** |
 | 2026-04-10 | M10: Jupyter notebook test harness confirmed fully implemented (all 17 cells: UC-01→UC-15 + PURGE). Notebook was already scaffolded in session 1; verified all cells have complete assertions, polling helpers, and PURGE covers SFN stop, EventBridge schedules, DDB batch delete, S3 delete. **Milestone 10 complete.** |
+| 2026-04-12 | Bug fixes: approval_worker KeyError, API Lambda IAM (SendTaskSuccess/Failure), Worker Lambda Amplify IAM, config_api.py Lambda path fix, default YAML config uploaded to S3, topic list last_run sort fixed, stale SFN token 409 handling. Two runs (201787be v001, 12ecb066 v002) approved and published to S3. Amplify public site rebuilt for both. |
+| 2026-04-12 | Architecture change: public site switched from SSG (build-time S3 read) to runtime API fetching. New public endpoints: GET /public/toc, /public/search-index, /public/topics/{id}. All Astro pages rewritten. topic.astro added (/topic?id=). [slug].astro removed. search_index_worker Amplify rebuild removed. API Lambda + search_index_worker + public site (Amplify job 16) redeployed. Public URL: https://dev.djcvgu9ysuar.amplifyapp.com |

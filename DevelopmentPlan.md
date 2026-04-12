@@ -2,7 +2,7 @@
 
 > This document captures all tooling, workflow, and architectural decisions for development.
 > It is the companion to `plan.md` (which captures what to build).
-> Last updated: 2026-04-10
+> Last updated: 2026-04-12
 
 ---
 
@@ -43,12 +43,13 @@ A dynamic, per-topic, multi-agent publishing platform that creates and maintains
 
 **Admin UI:** React 18 + Vite + React Router + TanStack Query + shadcn/ui
 
-**Public Site:** Astro 4 with static output — generates HTML at publish time from topic manifests in S3
+**Public Site:** Astro 4 with static output — deployed once as a static shell; all content fetched from the public API at runtime
 
 **Why Astro for public site:**
-- Zero JavaScript by default — fast reader experience
-- Builds from JSON/Markdown topic files — compatible with S3-driven content pipeline
-- SEO-friendly static output hosted on Amplify CDN
+- Minimal JavaScript by default — fast reader experience
+- Static shell deployed to Amplify CDN; content loaded from API on page load
+- No site rebuild required when topics are published — new content appears immediately
+- SEO note: topic content is client-rendered (acceptable for MVP; SSR can be added in Phase 2 if needed)
 
 ### 2.3 AI Runtime — OpenAI Responses API
 
@@ -353,15 +354,15 @@ See `.env.local.example` for the full list. Key variables:
 
 | # | Milestone | Status | Notes |
 |---|---|---|---|
-| 1 | Infrastructure Foundation | Not started | |
-| 2 | Topic CRUD API + Admin UI | Not started | |
-| 3 | Scheduling + Manual Trigger | Not started | |
-| 4 | Multi-Agent Pipeline | Not started | |
-| 5 | Admin Review + Approval | Not started | |
-| 6 | Incremental Publishing | Not started | |
-| 7 | Public Website | Not started | |
-| 8 | Run History + Feedback UI | Not started | |
-| 9 | Weekly Digest | Not started | |
-| 10 | Local Dev + Notebook Test Harness | Not started | |
+| 1 | Infrastructure Foundation | ✅ Complete | 83 AWS resources deployed via Terraform |
+| 2 | Topic CRUD API + Admin UI | ✅ Complete | CRUD, reorder, soft-delete, drag-and-drop |
+| 3 | Scheduling + Manual Trigger | ✅ Complete | EventBridge per-topic schedules, manual trigger |
+| 4 | Multi-Agent Pipeline | ✅ Complete | 11 workers, openai_runtime adapter, full SFN ASL |
+| 5 | Admin Review + Approval | ✅ Complete | SFN callback token, approve/reject, timeout handling |
+| 6 | Incremental Publishing | ✅ Complete | Version incrementing, S3 promotion, DDB PUBLISHED# items |
+| 7 | Public Website | ✅ Complete | Runtime API fetching — no rebuild on publish. URL: https://dev.djcvgu9ysuar.amplifyapp.com |
+| 8 | Run History + Feedback UI | ✅ Complete | Run history, trace timeline, cost bars, feedback list |
+| 9 | Weekly Digest | ✅ Complete | SES HTML digest, EventBridge Monday 08:00 UTC schedule |
+| 10 | Local Dev + Notebook Test Harness | ✅ Complete | UC-01→UC-15 + PURGE cell, full assertion coverage |
 
-> Update this table as milestones complete. Add notes for any scope deviations.
+> Last updated: 2026-04-12. All milestones complete. API: https://gcqq4kkov1.execute-api.us-east-1.amazonaws.com

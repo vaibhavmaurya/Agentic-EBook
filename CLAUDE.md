@@ -43,7 +43,16 @@ A dynamic, per-topic, multi-agent publishing platform. AI agents research, draft
 
 ## Architecture in One Paragraph
 
-API Gateway HTTP API → Lambda handlers (`services/api/`) → DynamoDB (metadata) + S3 (artifacts). Admin trigger or EventBridge Scheduler → Step Functions Standard workflow → 11 Lambda workers in `services/workers/` → `openai_runtime` adapter (OpenAI Responses API). Pipeline pauses at `WaitForApproval` (callback token). Admin approves via API → `publish_worker` promotes S3 artifacts → `search_index_worker` rebuilds Lunr.js index + TOC. Public Astro site reads from S3 + public API. Admin SPA (React) reads from admin API (Cognito JWT protected).
+API Gateway HTTP API → Lambda handlers (`services/api/`) → DynamoDB (metadata) + S3 (artifacts). Admin trigger or EventBridge Scheduler → Step Functions Standard workflow → 11 Lambda workers in `services/workers/` → `openai_runtime` adapter (OpenAI Responses API). Pipeline pauses at `WaitForApproval` (callback token). Admin approves via API → `publish_worker` promotes S3 artifacts → `search_index_worker` rebuilds Lunr.js index + TOC in S3. Public Astro site is a static shell deployed once to Amplify; all content (TOC, topics, search index, releases) is fetched from the public API at runtime in the browser — no site rebuild needed after publish. Admin SPA (React) reads from admin API (Cognito JWT protected).
+
+---
+
+## Deployed URLs (dev environment)
+
+| Resource | URL |
+|---|---|
+| Public site (Amplify) | https://dev.djcvgu9ysuar.amplifyapp.com |
+| API Gateway | https://gcqq4kkov1.execute-api.us-east-1.amazonaws.com |
 
 ---
 
@@ -55,6 +64,8 @@ API Gateway HTTP API → Lambda handlers (`services/api/`) → DynamoDB (metadat
 | `plan.md` | Living MVP plan — milestones, schema, API endpoints, verification checklist |
 | `DevelopmentPlan.md` | Stack decisions, MCP tools, env vars reference, milestone status |
 | `services/openai-runtime/__init__.py` | ONLY place openai SDK is imported |
+| `services/api/public.py` | Public API handler — TOC, topic content, search index, releases, comments, highlights |
+| `apps/public-site/src/pages/topic.astro` | Runtime topic viewer (reads `?id=` from URL, fetches from API) |
 | `packages/prompt-policies/style_guide.md` | Chapter style guide injected into Writer and Editor agent prompts |
 | `notebooks/ebook_platform_test_harness.ipynb` | UC-01→UC-15 end-to-end test + purge |
 | `.env.local.example` | Credential template — copy to `.env.local` (gitignored) |
