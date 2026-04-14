@@ -42,9 +42,9 @@ Readers browse, search, highlight, and comment
 
 | Interface | URL |
 |---|---|
-| Admin Console | https://dev.d200xw9mmlu4wj.amplifyapp.com |
-| Public Ebook Site | https://dev.djcvgu9ysuar.amplifyapp.com |
-| API Base URL | https://gcqq4kkov1.execute-api.us-east-1.amazonaws.com |
+| Admin Console |  |
+| Public Ebook Site | |
+| API Base URL | |
 
 ---
 
