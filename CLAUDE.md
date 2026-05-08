@@ -51,8 +51,9 @@ API Gateway HTTP API → Lambda handlers (`services/api/`) → DynamoDB (metadat
 
 | Resource | URL |
 |---|---|
-| Public site (Amplify) |  |
-| API Gateway |  |
+| Public site (Amplify) | https://dev.djcvgu9ysuar.amplifyapp.com |
+| Admin site (Amplify) | https://dev.d200xw9mmlu4wj.amplifyapp.com |
+| API Gateway | https://gcqq4kkov1.execute-api.us-east-1.amazonaws.com |
 
 ---
 

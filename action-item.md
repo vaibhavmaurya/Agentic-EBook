@@ -14,8 +14,10 @@
 
 ### Platform Status (2026-04-12)
 
-All milestones complete. Public site live at **https://dev.djcvgu9ysuar.amplifyapp.com**  
-Admin API: `https://gcqq4kkov1.execute-api.us-east-1.amazonaws.com`
+All milestones complete.  
+Public site: **https://dev.djcvgu9ysuar.amplifyapp.com**  
+Admin site: **https://dev.d200xw9mmlu4wj.amplifyapp.com**  
+API: **https://gcqq4kkov1.execute-api.us-east-1.amazonaws.com**
 
 ### Bugs fixed this session (2026-04-12):
 

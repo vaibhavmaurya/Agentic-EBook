@@ -360,9 +360,9 @@ See `.env.local.example` for the full list. Key variables:
 | 4 | Multi-Agent Pipeline | ✅ Complete | 11 workers, openai_runtime adapter, full SFN ASL |
 | 5 | Admin Review + Approval | ✅ Complete | SFN callback token, approve/reject, timeout handling |
 | 6 | Incremental Publishing | ✅ Complete | Version incrementing, S3 promotion, DDB PUBLISHED# items |
-| 7 | Public Website | ✅ Complete | Runtime API fetching — no rebuild on publish. URL: https://dev.djcvgu9ysuar.amplifyapp.com |
+| 7 | Public Website | ✅ Complete | Runtime API fetching — no rebuild on publish. Public: https://dev.djcvgu9ysuar.amplifyapp.com · Admin: https://dev.d200xw9mmlu4wj.amplifyapp.com |
 | 8 | Run History + Feedback UI | ✅ Complete | Run history, trace timeline, cost bars, feedback list |
 | 9 | Weekly Digest | ✅ Complete | SES HTML digest, EventBridge Monday 08:00 UTC schedule |
 | 10 | Local Dev + Notebook Test Harness | ✅ Complete | UC-01→UC-15 + PURGE cell, full assertion coverage |
 
-> Last updated: 2026-04-12. All milestones complete. API: https://gcqq4kkov1.execute-api.us-east-1.amazonaws.com
+> Last updated: 2026-04-12. All milestones complete. API: https://gcqq4kkov1.execute-api.us-east-1.amazonaws.com · Public: https://dev.djcvgu9ysuar.amplifyapp.com · Admin: https://dev.d200xw9mmlu4wj.amplifyapp.com
