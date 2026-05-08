@@ -388,6 +388,98 @@ aws stepfunctions list-executions \
   --region us-east-1
 ```
 
+## Deploying the Admin Site to Amplify
+
+The admin site (`apps/admin-site`) is deployed manually to Amplify — there is no GitHub auto-deploy. Follow these steps exactly after any frontend change.
+
+### Step 1 — Build
+
+```bash
+cd apps/admin-site
+npm run build   # reads apps/admin-site/.env.production for VITE_* vars
+```
+
+`.env.production` is gitignored and must exist locally with:
+```
+VITE_API_BASE_URL=https://gcqq4kkov1.execute-api.us-east-1.amazonaws.com
+VITE_COGNITO_USER_POOL_ID=us-east-1_R4FK1QHyr
+VITE_COGNITO_CLIENT_ID=5g3o4juiad2ils16v48iuu119i
+VITE_AWS_REGION=us-east-1
+```
+
+These values come from `terraform output` in `infra/terraform/envs/dev`.
+
+### Step 2 — Zip (use Python — NOT PowerShell Compress-Archive)
+
+**Critical:** PowerShell `Compress-Archive` uses Windows backslash paths (`assets\index.js`). AWS CloudFront/Amplify treats these as literal filenames, so `assets/` never becomes a real directory and all JS/CSS 404s. Always use the Python zip script:
+
+```bash
+python3 -c "
+import zipfile, os
+dist = 'apps/admin-site/dist'
+out  = 'apps/admin-site/dist.zip'
+with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as zf:
+    for root, dirs, files in os.walk(dist):
+        for f in files:
+            full = os.path.join(root, f)
+            arcname = os.path.relpath(full, dist).replace(os.sep, '/')
+            zf.write(full, arcname)
+print('Zipped')
+"
+```
+
+### Step 3 — Create deployment slot, upload, and start
+
+```bash
+# Create slot
+JOB=$(aws amplify create-deployment --app-id d200xw9mmlu4wj --branch-name dev --region us-east-1 --output json)
+JOB_ID=$(echo $JOB | python3 -c "import sys,json; print(json.load(sys.stdin)['jobId'])")
+UPLOAD_URL=$(echo $JOB | python3 -c "import sys,json; print(json.load(sys.stdin)['zipUploadUrl'])")
+
+# Upload
+curl -s -o /dev/null -w "Upload: %{http_code}\n" \
+  -X PUT -H "Content-Type: application/zip" \
+  --data-binary @apps/admin-site/dist.zip "$UPLOAD_URL"
+
+# Start deployment
+aws amplify start-deployment \
+  --app-id d200xw9mmlu4wj --branch-name dev \
+  --job-id $JOB_ID --region us-east-1
+
+# Poll until done (takes ~15-30s)
+aws amplify get-job --app-id d200xw9mmlu4wj --branch-name dev \
+  --job-id $JOB_ID --region us-east-1 \
+  --query 'job.summary.status' --output text
+```
+
+### Step 4 — Verify
+
+```bash
+# Should return 200
+curl -s -o /dev/null -w "%{http_code}" https://dev.d200xw9mmlu4wj.amplifyapp.com
+
+# Should contain the API URL (confirms env vars were baked in)
+curl -s https://dev.d200xw9mmlu4wj.amplifyapp.com/assets/index-*.js | grep -c "gcqq4kkov1"
+```
+
+### Amplify branch environment variables
+
+The Amplify branch must also have these env vars set (they're used if Amplify ever runs its own build). They were set with:
+
+```bash
+aws amplify update-branch \
+  --app-id d200xw9mmlu4wj --branch-name dev --region us-east-1 \
+  --environment-variables '{"VITE_API_BASE_URL":"https://gcqq4kkov1.execute-api.us-east-1.amazonaws.com","VITE_COGNITO_USER_POOL_ID":"us-east-1_R4FK1QHyr","VITE_COGNITO_CLIENT_ID":"5g3o4juiad2ils16v48iuu119i","VITE_AWS_REGION":"us-east-1"}'
+```
+
+If env vars are missing, verify with:
+```bash
+aws amplify get-branch --app-id d200xw9mmlu4wj --branch-name dev \
+  --region us-east-1 --query 'branch.environmentVariables'
+```
+
+---
+
 ## Environment Troubleshooting
 
 | Problem | Likely cause | Fix |
@@ -398,6 +490,8 @@ aws stepfunctions list-executions \
 | OpenAI key not found | Secret not created in Secrets Manager | Create secret manually or via Terraform, update `OPENAI_SECRET_NAME` |
 | Step Functions execution fails immediately | ASL definition error | Check CloudWatch logs for the state machine |
 | Notebook auth fails | Cognito user not created | Create admin user in Cognito console or via AWS CLI |
+| Admin site topics not loading / API calls fail | `VITE_API_BASE_URL` empty in build | Ensure `apps/admin-site/.env.production` exists with correct API URL, rebuild and redeploy |
+| Admin site JS/CSS 404 after Amplify deploy | Zip created with Windows backslash paths | Use the Python zip script above — never `PowerShell Compress-Archive` |
 
 ## MCP Server Setup (for Claude Code productivity)
 

@@ -38,6 +38,7 @@ A dynamic, per-topic, multi-agent publishing platform. AI agents research, draft
 4. **Terraform provisions platform primitives only.** Per-topic EventBridge Scheduler entries are created dynamically at runtime by the API — not by Terraform.
 5. **Update `plan.md` whenever scope or sequencing changes.** Update the milestone status table in `DevelopmentPlan.md` when a milestone completes.
 6. **After implementing any backend module or UI component, test it locally before committing.** For backend: start the API server and make real HTTP calls against dev AWS resources. For UI: run `npm run build` (0 errors required) and smoke-test the critical paths in the browser. Do not declare a milestone complete until the end-to-end flow has been exercised locally.
+7. **When deploying the admin site to Amplify, always zip with the Python script — never PowerShell `Compress-Archive`.** PowerShell produces backslash paths that break the `assets/` directory on CloudFront (JS/CSS go 404). Full deploy procedure: `docs/local-dev.md` → "Deploying the Admin Site to Amplify".
 
 ---
 
